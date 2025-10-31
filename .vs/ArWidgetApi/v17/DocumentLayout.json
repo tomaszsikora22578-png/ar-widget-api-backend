@@ -1,0 +1,386 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\controllers\\analyticscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:controllers\\analyticscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\arwidgetapi.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:arwidgetapi.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\controllers\\productcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:controllers\\productcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\middleware\\clienttokenmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:middleware\\clienttokenmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\migrations\\applicationdbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:migrations\\applicationdbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\models\\analyticsentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:models\\analyticsentry.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\models\\client.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:models\\client.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\.gcloudignore||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:.gcloudignore||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\analyticsdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:analyticsdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\applicationdbcontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:applicationdbcontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\arwidgetapi.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:arwidgetapi.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\weatherforecast.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:weatherforecast.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\migrations\\20251030100311_adddescriptionandalttext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:migrations\\20251030100311_adddescriptionandalttext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|d:\\ts\\arwidgetapi\\arwidgetapi\\migrations\\20251030092417_initialmigration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{800C3FFA-EFC9-417F-B4AE-2C07CDDADD8D}|ArWidgetApi.csproj|solutionrelative:migrations\\20251030092417_initialmigration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AnalyticsController.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\AnalyticsController.cs",
+              "RelativeDocumentMoniker": "Controllers\\AnalyticsController.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\AnalyticsController.cs",
+              "RelativeToolTip": "Controllers\\AnalyticsController.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAAAowAkAAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:48:04.269Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{e8b06f52-6d01-11d2-aa7d-00c04f990343}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "Properties\\launchSettings.json",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Properties\\launchSettings.json",
+              "RelativeToolTip": "Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-10-31T13:07:46.543Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Client.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\Client.cs",
+              "RelativeDocumentMoniker": "Models\\Client.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\Client.cs",
+              "RelativeToolTip": "Models\\Client.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAABQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:17:47.137Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "AnalyticsEntry.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\AnalyticsEntry.cs",
+              "RelativeDocumentMoniker": "Models\\AnalyticsEntry.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\AnalyticsEntry.cs",
+              "RelativeToolTip": "Models\\AnalyticsEntry.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:19:10.611Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ApplicationDbContextModelSnapshot.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeDocumentMoniker": "Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeToolTip": "Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-31T12:47:53.319Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ClientTokenMiddleware.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Middleware\\ClientTokenMiddleware.cs",
+              "RelativeDocumentMoniker": "Middleware\\ClientTokenMiddleware.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Middleware\\ClientTokenMiddleware.cs",
+              "RelativeToolTip": "Middleware\\ClientTokenMiddleware.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-30T10:12:19.609Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "WeatherForecastController.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\WeatherForecastController.cs",
+              "RelativeDocumentMoniker": "Controllers\\WeatherForecastController.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\WeatherForecastController.cs",
+              "RelativeToolTip": "Controllers\\WeatherForecastController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T13:14:01.89Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ArWidgetApi.csproj",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ArWidgetApi.csproj",
+              "RelativeDocumentMoniker": "ArWidgetApi.csproj",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ArWidgetApi.csproj",
+              "RelativeToolTip": "ArWidgetApi.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-29T12:45:46.708Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Product.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\Product.cs",
+              "RelativeDocumentMoniker": "Models\\Product.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Models\\Product.cs",
+              "RelativeToolTip": "Models\\Product.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:18:21.636Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": ".gcloudignore",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\.gcloudignore",
+              "RelativeDocumentMoniker": ".gcloudignore",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\.gcloudignore",
+              "RelativeToolTip": ".gcloudignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-10-30T14:36:45.917Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "AnalyticsDto.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\AnalyticsDto.cs",
+              "RelativeDocumentMoniker": "AnalyticsDto.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\AnalyticsDto.cs",
+              "RelativeToolTip": "AnalyticsDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:47:27.401Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ProductController.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\ProductController.cs",
+              "RelativeDocumentMoniker": "Controllers\\ProductController.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Controllers\\ProductController.cs",
+              "RelativeToolTip": "Controllers\\ProductController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:46:09.552Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ApplicationDbContext.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "ApplicationDbContext.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ApplicationDbContext.cs",
+              "RelativeToolTip": "ApplicationDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:19:37.179Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "ApplicationDbContextFactory.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ApplicationDbContextFactory.cs",
+              "RelativeDocumentMoniker": "ApplicationDbContextFactory.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ApplicationDbContextFactory.cs",
+              "RelativeToolTip": "ApplicationDbContextFactory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-30T09:23:25.863Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-10-30T07:46:57.445Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "ArWidgetApi.http",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ArWidgetApi.http",
+              "RelativeDocumentMoniker": "ArWidgetApi.http",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\ArWidgetApi.http",
+              "RelativeToolTip": "ArWidgetApi.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2025-10-31T12:53:19.119Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Dockerfile",
+              "RelativeDocumentMoniker": "Dockerfile",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Dockerfile",
+              "RelativeToolTip": "Dockerfile",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-10-31T11:02:00.259Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-29T12:23:10.62Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "WeatherForecast.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\WeatherForecast.cs",
+              "RelativeDocumentMoniker": "WeatherForecast.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\WeatherForecast.cs",
+              "RelativeToolTip": "WeatherForecast.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-31T12:47:03.407Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "20251030100311_AddDescriptionAndAltText.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\20251030100311_AddDescriptionAndAltText.cs",
+              "RelativeDocumentMoniker": "Migrations\\20251030100311_AddDescriptionAndAltText.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\20251030100311_AddDescriptionAndAltText.cs",
+              "RelativeToolTip": "Migrations\\20251030100311_AddDescriptionAndAltText.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-30T10:03:11.811Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "20251030092417_InitialMigration.cs",
+              "DocumentMoniker": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\20251030092417_InitialMigration.cs",
+              "RelativeDocumentMoniker": "Migrations\\20251030092417_InitialMigration.cs",
+              "ToolTip": "D:\\TS\\ARWIDGETAPI\\ArWidgetApi\\Migrations\\20251030092417_InitialMigration.cs",
+              "RelativeToolTip": "Migrations\\20251030092417_InitialMigration.cs",
+              "ViewState": "AgIAAGQAAAAAAAAAAAAgwC4AAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-30T09:24:18.016Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

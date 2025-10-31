@@ -1,0 +1,5 @@
+﻿@ArWidgetApi_HostAddress = http://localhost:5190
+
+GET {{ArWidgetApi_HostAddress}}/weatherforecast/
+Accept: application/json
+

@@ -1,0 +1,11 @@
+# Pliki binarnych i tymczasowe
+.vs
+[Bb]in/
+[Oo]bj/
+
+# Pliki Git (jeœli u¿ywasz Git)
+.git
+.gitignore
+
+# Pliki Buildpack/IDE
+.gcloudignore
