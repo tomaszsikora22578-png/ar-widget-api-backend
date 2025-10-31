@@ -6,8 +6,9 @@ steps:
 
 # 2. Wdrożenie kontenera na Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'run'
+  entrypoint: 'gcloud'
   args:
+  - 'run' # <--- ZMIEŃ TUTAJ NA 'gcloud' I DODAJ 'run' JAKO ARGUMENT
   - 'deploy'
   - 'ar-widget-api'
   - '--image'
