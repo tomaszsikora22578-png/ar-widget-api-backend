@@ -1,0 +1,21 @@
+teps:
+# 1. Budowanie kontenera za pomocą Buildpacków
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'builds'
+  args: ['submit', '--tag', 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA', '.']
+
+# 2. Wdrożenie kontenera na Cloud Run
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'run'
+  args:
+  - 'deploy'
+  - 'ar-widget-api'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
+  - '--region'
+  - 'europe-central2'
+  - '--allow-unauthenticated'
+  - '--platform'
+  - 'managed'
+images:
+- 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
