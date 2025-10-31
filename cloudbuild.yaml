@@ -1,4 +1,4 @@
-teps:
+steps:
 # 1. Budowanie kontenera za pomocą Buildpacków
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'builds'
