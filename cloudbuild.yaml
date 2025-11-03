@@ -1,13 +1,20 @@
+variables:
+  # Zmienna przechowuje pełny regionalny adres obrazu, omijając problematyczne gcr.io/locations/us
+  _AR_IMAGE: europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA
+
 steps:
 # 1. Budowanie obrazu za pomocą Dockerfile
-- name: 'gcr.io/cloud-builders/docker' # Użyjemy buildera Dockera
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA', '.' ]
+# Obraz jest tagowany regionalnym adresem AR.
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', '${_AR_IMAGE}', '.' ]
 
 # 2. Przesłanie obrazu do Artifact Registry
+# Przesyłanie do europe-central2-docker.pkg.dev.
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'push', 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA' ]
+  args: [ 'push', '${_AR_IMAGE}' ]
 
 # 3. Wdrożenie na Cloud Run
+# Używamy regionalnego obrazu i wdrażamy w regionie europe-central2.
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'gcloud'
   args:
@@ -15,7 +22,7 @@ steps:
   - 'deploy'
   - 'ar-widget-api'
   - '--image'
-  - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
+  - '${_AR_IMAGE}' # Kluczowa zmiana: używamy regionalnego obrazu
   - '--region'
   - 'europe-central2'
   - '--allow-unauthenticated'
@@ -23,6 +30,6 @@ steps:
   - 'managed'
 
 images:
-- 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
+- '${_AR_IMAGE}'
 options:
   logging: CLOUD_LOGGING_ONLY
