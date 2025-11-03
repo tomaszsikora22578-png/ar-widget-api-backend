@@ -1,14 +1,19 @@
 steps:
-# 1. Budowanie kontenera za pomocą Buildpacków
+# 1. Budowanie kontenera (POPRAWIONY)
 - name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'builds'
-  args: ['submit', '--tag', 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA', '.']
+  entrypoint: 'gcloud' # <-- MUSI BYĆ 'gcloud'
+  args: 
+  - 'builds' # <-- Podkomenda gcloud
+  - 'submit' 
+  - '--tag' 
+  - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA' 
+  - '.'
 
-# 2. Wdrożenie kontenera na Cloud Run
+# 2. Wdrożenie kontenera na Cloud Run (POPRAWIONY)
 - name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'gcloud'
+  entrypoint: 'gcloud' # <-- MUSI BYĆ 'gcloud'
   args:
-  - 'run' # <--- ZMIEŃ TUTAJ NA 'gcloud' I DODAJ 'run' JAKO ARGUMENT
+  - 'run' # <-- Podkomenda gcloud
   - 'deploy'
   - 'ar-widget-api'
   - '--image'
@@ -21,4 +26,4 @@ steps:
 images:
 - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
 options:
-  logging: CLOUD_LOGGING_ONLY # Rozwiązuje błąd 'invalid argument'
+  logging: CLOUD_LOGGING_ONLY
