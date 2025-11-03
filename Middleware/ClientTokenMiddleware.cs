@@ -1,6 +1,6 @@
-﻿using ArWidgetApi.Data;
+using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
-namespace ArWidgetApi.Middleware // Ta przestrzeń nazw jest kluczowa!
+namespace ArWidgetApi.Middleware // Ta przestrzeĹ„ nazw jest kluczowa!
 {
     public class ClientTokenMiddleware
     {
@@ -13,10 +13,10 @@ namespace ArWidgetApi.Middleware // Ta przestrzeń nazw jest kluczowa!
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
         {
-            // 1. Sprawdzenie, czy żądanie ma nagłówek X-Client-Token
+            // 1. Sprawdzenie, czy ĹĽÄ…danie ma nagĹ‚Ăłwek X-Client-Token
             if (!context.Request.Headers.TryGetValue("X-Client-Token", out var tokenValues))
             {
-                // Jeśli nagłówka brakuje, zwracamy 401 Unauthorized
+                // JeĹ›li nagĹ‚Ăłwka brakuje, zwracamy 401 Unauthorized
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Client token is required.");
                 return;
@@ -30,13 +30,13 @@ namespace ArWidgetApi.Middleware // Ta przestrzeń nazw jest kluczowa!
 
             if (client == null)
             {
-                // Jeśli token jest nieprawidłowy lub subskrypcja nieaktywna, zwracamy 401
+                // JeĹ›li token jest nieprawidĹ‚owy lub subskrypcja nieaktywna, zwracamy 401
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Invalid client token or inactive subscription.");
                 return;
             }
 
-            // 3. Kontynuowanie żądania (przekazanie do kontrolera)
+            // 3. Kontynuowanie ĹĽÄ…dania (przekazanie do kontrolera)
             await _next(context);
         }
     }

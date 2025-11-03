@@ -1,0 +1,29 @@
+steps:
+# 1. Budowanie kontenera (POPRAWIONY)
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud' # <-- MUSI BYĆ 'gcloud'
+  args: 
+  - 'builds' # <-- Podkomenda gcloud
+  - 'submit' 
+  - '--tag' 
+  - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA' 
+  - '.'
+
+# 2. Wdrożenie kontenera na Cloud Run (POPRAWIONY)
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'gcloud' # <-- MUSI BYĆ 'gcloud'
+  args:
+  - 'run' # <-- Podkomenda gcloud
+  - 'deploy'
+  - 'ar-widget-api'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
+  - '--region'
+  - 'europe-central2'
+  - '--allow-unauthenticated'
+  - '--platform'
+  - 'managed'
+images:
+- 'gcr.io/$PROJECT_ID/ar-widget-api:$COMMIT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY

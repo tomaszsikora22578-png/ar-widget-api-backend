@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Models;
 
 namespace ArWidgetApi.Data

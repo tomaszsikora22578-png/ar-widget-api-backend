@@ -1,4 +1,4 @@
-﻿namespace ArWidgetApi
+namespace ArWidgetApi
 {
     public class WeatherForecast
     {

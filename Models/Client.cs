@@ -1,4 +1,4 @@
-﻿namespace ArWidgetApi.Models
+namespace ArWidgetApi.Models
 {
     public class Client
     {

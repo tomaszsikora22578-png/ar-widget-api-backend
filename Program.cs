@@ -1,4 +1,4 @@
-﻿using ArWidgetApi.Models;
+using ArWidgetApi.Models;
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
@@ -12,19 +12,19 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // options.UseInMemoryDatabase("ArWidgetDb")- USUWAMY TĘ LINIĘ
+    // options.UseInMemoryDatabase("ArWidgetDb")- USUWAMY TÄ LINIÄ
 
-    // Używamy UseMySql
+    // UĹĽywamy UseMySql
     options.UseMySql(
         connectionString,
         // Konfiguracja wersji Twojego lokalnego serwera MySQL (np. 8.0)
         ServerVersion.Create(8, 0, 34, ServerType.MySql)
     );
 });
-// Dodanie Serwisów do obsługi Kontrolerów API (niezbędne!)
+// Dodanie SerwisĂłw do obsĹ‚ugi KontrolerĂłw API (niezbÄ™dne!)
 builder.Services.AddControllers();
 
-// Konfiguracja CORS (umożliwienie komunikacji z GitHub Pages)
+// Konfiguracja CORS (umoĹĽliwienie komunikacji z GitHub Pages)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
@@ -44,7 +44,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Użyj tego, aby zobaczyć błędy podczas uruchamiania (tylko w Development)
+// UĹĽyj tego, aby zobaczyÄ‡ bĹ‚Ä™dy podczas uruchamiania (tylko w Development)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -54,22 +54,22 @@ if (app.Environment.IsDevelopment())
 // Przekierowanie HTTP na HTTPS (dla localhost)
 app.UseHttpsRedirection();
 
-// Włączenie CORS (Musi być przed UseRouting/UseEndpoints)
+// WĹ‚Ä…czenie CORS (Musi byÄ‡ przed UseRouting/UseEndpoints)
 app.UseCors("AllowSpecificOrigin");
 
-// Middleware do weryfikacji tokena klienta (musisz to mieć!)
+// Middleware do weryfikacji tokena klienta (musisz to mieÄ‡!)
 app.UseMiddleware<ClientTokenMiddleware>();
 
-// Użycie autoryzacji (opcjonalne, ale dobra praktyka)
+// UĹĽycie autoryzacji (opcjonalne, ale dobra praktyka)
 app.UseAuthorization();
 
-// Mapowanie Kontrolerów API
+// Mapowanie KontrolerĂłw API
 app.MapControllers();
 
 
-//  Wstrzymanie (do debugowania) zostało usunięte.
-// Jeśli chcesz, aby konsola nie zamykała się od razu:
-// Console.WriteLine("Naciśnij Enter, aby zamknąć...");
+//  Wstrzymanie (do debugowania) zostaĹ‚o usuniÄ™te.
+// JeĹ›li chcesz, aby konsola nie zamykaĹ‚a siÄ™ od razu:
+// Console.WriteLine("NaciĹ›nij Enter, aby zamknÄ…Ä‡...");
 // Console.ReadLine();
 
 
