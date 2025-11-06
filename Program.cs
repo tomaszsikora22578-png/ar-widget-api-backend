@@ -12,27 +12,36 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // options.UseInMemoryDatabase("ArWidgetDb")- USUWAMY TÄ LINIÄ
+    // options.UseInMemoryDatabase("ArWidgetDb")- USUWAMY TĘ LINIĘ
 
-    // UĹĽywamy UseMySql
+    // Używamy UseMySql
     options.UseMySql(
         connectionString,
         // Konfiguracja wersji Twojego lokalnego serwera MySQL (np. 8.0)
         ServerVersion.Create(8, 0, 34, ServerType.MySql)
     );
 });
-// Dodanie SerwisĂłw do obsĹ‚ugi KontrolerĂłw API (niezbÄ™dne!)
+// Dodanie Serwisów do obsługi Kontrolerów API (niezbędne!)
 builder.Services.AddControllers();
 
-// Konfiguracja CORS (umoĹĽliwienie komunikacji z GitHub Pages)
+// Używamy nazwy, która jasno wskazuje, że polityka jest dla aplikacji klienckich
+const string ClientAppCORS = "_clientAppCORS";
+
+// Konfiguracja CORS (umożliwienie komunikacji z Frontendami)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
+    options.AddPolicy(ClientAppCORS,
         policy =>
         {
-            policy.WithOrigins("http://127.0.0.1:5500", "https://tomaszsikora22578-png.github.io") // Dodaj adres Twojego dema!
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+             // ***** KLUCZOWA ZMIANA CORS *****
+             policy.WithOrigins(
+                    "http://127.0.0.1:5500", 
+                    "https://tomaszsikora22578-png.github.io",
+                    "https://ar-widget-project.firebaseapp.com", // Adres z błędu
+                    "https://ar-widget-project.web.app"     // Typowa domena Firebase Hosting
+                ) 
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -44,7 +53,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// UĹĽyj tego, aby zobaczyÄ‡ bĹ‚Ä™dy podczas uruchamiania (tylko w Development)
+// Użyj tego, aby zobaczyć błędy podczas uruchamiania (tylko w Development)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -54,25 +63,19 @@ if (app.Environment.IsDevelopment())
 // Przekierowanie HTTP na HTTPS (dla localhost)
 app.UseHttpsRedirection();
 
-// WĹ‚Ä…czenie CORS (Musi byÄ‡ przed UseRouting/UseEndpoints)
-app.UseCors("AllowSpecificOrigin");
+// Włączenie CORS (Musi być przed UseRouting/UseEndpoints)
+// Używamy nowej, poprawnej nazwy polityki
+app.UseCors(ClientAppCORS);
 
-// Middleware do weryfikacji tokena klienta (musisz to mieÄ‡!)
+// Middleware do weryfikacji tokena klienta (musisz to mieć!)
 app.UseMiddleware<ClientTokenMiddleware>();
 
-// UĹĽycie autoryzacji (opcjonalne, ale dobra praktyka)
+// Użycie autoryzacji (opcjonalne, ale dobra praktyka)
 app.UseAuthorization();
 
-// Mapowanie KontrolerĂłw API
+// Mapowanie Kontrolerów API
 app.MapControllers();
-
-
-//  Wstrzymanie (do debugowania) zostaĹ‚o usuniÄ™te.
-// JeĹ›li chcesz, aby konsola nie zamykaĹ‚a siÄ™ od razu:
-// Console.WriteLine("NaciĹ›nij Enter, aby zamknÄ…Ä‡...");
-// Console.ReadLine();
 
 
 // Ostateczne uruchomienie aplikacji
 app.Run();
-// Klasa do inicjalizacji danych testowych
