@@ -1,6 +1,7 @@
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
-namespace ArWidgetApi.Middleware // Ta przestrzeĹ„ nazw jest kluczowa!
+
+namespace ArWidgetApi.Middleware
 {
     public class ClientTokenMiddleware
     {
@@ -13,30 +14,43 @@ namespace ArWidgetApi.Middleware // Ta przestrzeĹ„ nazw jest kluczowa!
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
         {
-            // 1. Sprawdzenie, czy ĹĽÄ…danie ma nagĹ‚Ăłwek X-Client-Token
-            if (!context.Request.Headers.TryGetValue("X-Client-Token", out var tokenValues))
+            string? clientToken = null;
+
+            // 1️⃣ Najpierw spróbuj odczytać niestandardowy nagłówek X-Client-Token
+            if (context.Request.Headers.TryGetValue("X-Client-Token", out var tokenValues))
             {
-                // JeĹ›li nagĹ‚Ăłwka brakuje, zwracamy 401 Unauthorized
+                clientToken = tokenValues.FirstOrDefault();
+            }
+            // 2️⃣ Jeśli brak, spróbuj Authorization: Bearer <token>
+            else if (context.Request.Headers.TryGetValue("Authorization", out var authValues))
+            {
+                var authHeader = authValues.FirstOrDefault();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    clientToken = authHeader.Substring("Bearer ".Length).Trim();
+                }
+            }
+
+            // 3️⃣ Jeśli nadal brak tokena → 401 Unauthorized
+            if (string.IsNullOrEmpty(clientToken))
+            {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Client token is required.");
                 return;
             }
 
-            var clientToken = tokenValues.FirstOrDefault();
-
-            // 2. Wyszukanie klienta w bazie danych
+            // 4️⃣ Sprawdź token w bazie
             var client = await dbContext.Clients
                 .FirstOrDefaultAsync(c => c.ClientToken == clientToken && c.SubscriptionStatus == "Active");
 
             if (client == null)
             {
-                // JeĹ›li token jest nieprawidĹ‚owy lub subskrypcja nieaktywna, zwracamy 401
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Invalid client token or inactive subscription.");
                 return;
             }
 
-            // 3. Kontynuowanie ĹĽÄ…dania (przekazanie do kontrolera)
+            // 5️⃣ Token OK → przejdź dalej
             await _next(context);
         }
     }
