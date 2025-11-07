@@ -2,33 +2,20 @@ using ArWidgetApi.Models;
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using Pomelo.EntityFrameworkCore.MySql.Storage.Internal; // Dodano, aby użyć MySqlUnixDomainSocketFactory
 using ArWidgetApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ... reszta kodu, która została pominięta dla zwięzłości (np. konfiguracja Logowania, itp.)
-
-// 2. Konfiguracja Bazy Danych (MySQL)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    // Używamy UseMySql
-    options.UseMySql(
-        connectionString,
-        // Konfiguracja wersji Twojego serwera MySQL
-        ServerVersion.Create(8, 0, 34, ServerType.MySql)
-    );
-});
-
-// Dodanie Serwisów do obsługi Kontrolerów API
-builder.Services.AddControllers();
-
 // Używamy nazwy, która jasno wskazuje, że polityka jest dla aplikacji klienckich
-// Zmieniamy na readonly string (lub pozostawiamy const)
 const string ClientAppCORS = "_clientAppCORS";
 
-// 🌟🌟🌟 KLUCZOWA SEKCJA CORS 🌟🌟🌟
+// 1. Serwisy
+// Konfiguracja Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// KLUCZOWA SEKCJA CORS (Nie zmieniona, ale poprawna) 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS,
@@ -38,19 +25,61 @@ builder.Services.AddCors(options =>
                         "http://127.0.0.1:5500", // Lokalny serwer dev
                         "https://tomaszsikora22578-png.github.io", // Github Pages
                         "https://ar-widget-project.firebaseapp.com", // Adres z błędu
-                        "https://ar-widget-project.web.app"       // Typowa domena Firebase Hosting
+                        "https://ar-widget-project.web.app"          // Typowa domena Firebase Hosting
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod();
-                    // Jeśli używasz cookies/sesji lub autoryzacji bazującej na tokenach, które są przesyłane jako credential, dodaj .AllowCredentials()
+                    // .AllowCredentials(); // Dodaj, jeśli będziesz używać autoryzacji z cookies
         });
 });
 
-// Konfiguracja Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// 2. Konfiguracja Bazy Danych (MySQL)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// --- 2. BUDOWANIE APLIKACJI I KONFIGURACJA POTOKU ---
+//  POCZĄTEK NOWEJ LOGIKI DLA CLOUD SQL W CLOUD RUN 
+// Cloud Run automatycznie ustawia tę zmienną po dodaniu połączenia Cloud SQL w konsoli.
+var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"]; 
+var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance); 
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    // Konfiguracja wersji Twojego serwera MySQL
+    var serverVersion = ServerVersion.Create(8, 0, 34, ServerType.MySql);
+    
+    if (isCloudRun)
+    {
+        // Połączenie za pomocą Gniazda UNIX (wymagane w Cloud Run)
+        options.UseMySql(connectionString,
+            serverVersion,
+            mysqlOptions => mysqlOptions
+                .ServerType(ServerType.MySql)
+                .UseMySqlOptions(conn => conn
+                    // Ustawienie Server na nazwę instancji Cloud SQL, które jest używane wewnętrznie
+                    .Server(cloudSqlInstance)
+                    .SocketFactory(typeof(MySqlUnixDomainSocketFactory))
+                )
+        );
+        Console.WriteLine($"[INFO] Użyto połączenia Gniazda UNIX dla Cloud SQL: {cloudSqlInstance}");
+    }
+    else
+    {
+        // Standardowe połączenie (np. środowisko lokalne)
+        options.UseMySql(
+            connectionString,
+            serverVersion
+        );
+        Console.WriteLine("[INFO] Użyto standardowego połączenia MySQL.");
+    }
+});
+// KONIEC NOWEJ LOGIKI DLA CLOUD SQL W CLOUD RUN 
+
+// Dodanie Serwisów do obsługi Kontrolerów API
+builder.Services.AddControllers();
+
+// Użycie autoryzacji (dodanie serwisu)
+builder.Services.AddAuthorization();
+
+// --- 3. BUDOWANIE APLIKACJI I KONFIGURACJA POTOKU ---
 
 var app = builder.Build();
 
@@ -64,14 +93,18 @@ if (app.Environment.IsDevelopment())
 // Przekierowanie HTTP na HTTPS (dobra praktyka)
 app.UseHttpsRedirection();
 
-//  WŁĄCZENIE CORS (Musi być przed UseRouting/UseEndpoints) 
+// WŁĄCZENIE CORS (Musi być przed UseAuthorization i UseEndpoints) 
 app.UseCors(ClientAppCORS);
 
-// Middleware do weryfikacji tokena klienta (ClientTokenMiddleware)
+// Zmiana kolejności: Najpierw UseAuthorization, potem Middleware (Ważne dla niektórych scenariuszy) 
+
+// 1. Użycie autoryzacji (standardowe middleware)
+app.UseAuthorization();
+
+// 2. Middleware do weryfikacji tokena klienta (ClientTokenMiddleware)
+// To jest niestandardowy middleware i powinno być użyte po standardowym Użyciu Autoryzacji
 app.UseMiddleware<ClientTokenMiddleware>();
 
-// Użycie autoryzacji (jeśli jest potrzebna)
-app.UseAuthorization();
 
 // Mapowanie Kontrolerów API (endpoints)
 app.MapControllers();
