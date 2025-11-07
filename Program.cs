@@ -3,49 +3,50 @@ using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ArWidgetApi.Middleware;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// ...
+// ... reszta kodu, która została pominięta dla zwięzłości (np. konfiguracja Logowania, itp.)
 
-// 2. NOWA Konfiguracja Bazy Danych (MySQL)
+// 2. Konfiguracja Bazy Danych (MySQL)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // options.UseInMemoryDatabase("ArWidgetDb")- USUWAMY TĘ LINIĘ
-
     // Używamy UseMySql
     options.UseMySql(
         connectionString,
-        // Konfiguracja wersji Twojego lokalnego serwera MySQL (np. 8.0)
+        // Konfiguracja wersji Twojego serwera MySQL
         ServerVersion.Create(8, 0, 34, ServerType.MySql)
     );
 });
-// Dodanie Serwisów do obsługi Kontrolerów API (niezbędne!)
+
+// Dodanie Serwisów do obsługi Kontrolerów API
 builder.Services.AddControllers();
 
 // Używamy nazwy, która jasno wskazuje, że polityka jest dla aplikacji klienckich
+// Zmieniamy na readonly string (lub pozostawiamy const)
 const string ClientAppCORS = "_clientAppCORS";
 
-// Konfiguracja CORS (umożliwienie komunikacji z Frontendami)
+// 🌟🌟🌟 KLUCZOWA SEKCJA CORS 🌟🌟🌟
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS,
         policy =>
         {
-             // ***** KLUCZOWA ZMIANA CORS *****
-             policy.WithOrigins(
-                    "http://127.0.0.1:5500", 
-                    "https://tomaszsikora22578-png.github.io",
-                    "https://ar-widget-project.firebaseapp.com", // Adres z błędu
-                    "https://ar-widget-project.web.app"     // Typowa domena Firebase Hosting
-                ) 
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+            policy.WithOrigins(
+                        "http://127.0.0.1:5500", // Lokalny serwer dev
+                        "https://tomaszsikora22578-png.github.io", // Github Pages
+                        "https://ar-widget-project.firebaseapp.com", // Adres z błędu
+                        "https://ar-widget-project.web.app"       // Typowa domena Firebase Hosting
+                    )
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+                    // Jeśli używasz cookies/sesji lub autoryzacji bazującej na tokenach, które są przesyłane jako credential, dodaj .AllowCredentials()
         });
 });
 
-// Konfiguracja Swagger/OpenAPI (opcjonalne, ale bardzo przydatne)
+// Konfiguracja Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -60,20 +61,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Przekierowanie HTTP na HTTPS (dla localhost)
+// Przekierowanie HTTP na HTTPS (dobra praktyka)
 app.UseHttpsRedirection();
 
-// Włączenie CORS (Musi być przed UseRouting/UseEndpoints)
-// Używamy nowej, poprawnej nazwy polityki
+//  WŁĄCZENIE CORS (Musi być przed UseRouting/UseEndpoints) 
 app.UseCors(ClientAppCORS);
 
-// Middleware do weryfikacji tokena klienta (musisz to mieć!)
+// Middleware do weryfikacji tokena klienta (ClientTokenMiddleware)
 app.UseMiddleware<ClientTokenMiddleware>();
 
-// Użycie autoryzacji (opcjonalne, ale dobra praktyka)
+// Użycie autoryzacji (jeśli jest potrzebna)
 app.UseAuthorization();
 
-// Mapowanie Kontrolerów API
+// Mapowanie Kontrolerów API (endpoints)
 app.MapControllers();
 
 
