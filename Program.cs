@@ -1,21 +1,12 @@
 using ArWidgetApi.Models;
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using ArWidgetApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Nazwa polityki CORS
+// --- 1. CORS ---
 const string ClientAppCORS = "_clientAppCORS";
-
-// -------------------- 1. Serwisy --------------------
-
-// Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS, policy =>
@@ -26,70 +17,67 @@ builder.Services.AddCors(options =>
                     "https://ar-widget-project.firebaseapp.com",
                     "https://ar-widget-project.web.app"
                 )
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
-// -------------------- 2. Konfiguracja Bazy Danych --------------------
+// --- 2. Swagger ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
+// --- 3. Baza danych MySQL (lokalnie i Cloud SQL) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Cloud Run + Cloud SQL
+// W Cloud Run ta zmienna jest ustawiana automatycznie
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
+// Jeśli jesteśmy w Cloud Run – użyjemy Unix Socket
+if (isCloudRun)
+{
+    // Budujemy connection string z Unix Socket
+    var builderCloud = new MySqlConnector.MySqlConnectionStringBuilder(connectionString)
+    {
+        UnixSocket = $"/cloudsql/{cloudSqlInstance}"
+    };
+    connectionString = builderCloud.ConnectionString;
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // AutoDetect wykrywa MySQL lub MariaDB na podstawie connection string
     var serverVersion = ServerVersion.AutoDetect(connectionString);
 
-    if (isCloudRun)
+    options.UseMySql(connectionString, serverVersion, mySqlOptions =>
     {
-        // Połączenie przez UNIX socket (Cloud SQL w Cloud Run)
-        options.UseMySql(connectionString, serverVersion, mySqlOptions =>
-        {
-            mySqlOptions.UseUnixSocket($"/cloudsql/{cloudSqlInstance}");
-            mySqlOptions.EnableRetryOnFailure();
-        });
-        Console.WriteLine($"[INFO] Użyto połączenia UNIX socket dla Cloud SQL: {cloudSqlInstance}");
-    }
-    else
-    {
-        // Lokalny MySQL
-        options.UseMySql(connectionString, serverVersion);
-        Console.WriteLine("[INFO] Użyto lokalnego połączenia MySQL.");
-    }
+        mySqlOptions.EnableRetryOnFailure();
+    });
+
+    Console.WriteLine(isCloudRun
+        ? $"[INFO] Użyto Cloud SQL przez UNIX socket: {cloudSqlInstance}"
+        : "[INFO] Użyto lokalnego połączenia MySQL.");
 });
 
-// -------------------- 3. Inne serwisy --------------------
+// --- 4. Kontrolery i autoryzacja ---
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 
-// -------------------- 4. Budowanie aplikacji --------------------
+// --- 5. Build aplikacji ---
 var app = builder.Build();
 
-// Swagger w Development
+// --- 6. Middleware i swagger ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// HTTPS redirect
 app.UseHttpsRedirection();
-
-// CORS
 app.UseCors(ClientAppCORS);
-
-// Autoryzacja
 app.UseAuthorization();
 
-// Middleware weryfikujący token klienta
+// Custom middleware do weryfikacji tokenów
 app.UseMiddleware<ClientTokenMiddleware>();
 
-// Mapowanie endpointów
 app.MapControllers();
-
-// Uruchomienie
 app.Run();
