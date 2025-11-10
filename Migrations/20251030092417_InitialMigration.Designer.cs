@@ -23,8 +23,6 @@ namespace ArWidgetApi.Migrations
                 .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
             modelBuilder.Entity("ArWidgetApi.Models.AnalyticsEntry", b =>
                 {
                     b.Property<int>("Id")
