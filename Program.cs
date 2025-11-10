@@ -75,26 +75,11 @@ app.MapControllers();
 
 
 // logowanie endpoitn:
-var endpointDataSource = app.Services.GetRequiredService<EndpointDataSource>();
+var dataSource = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>();
 Console.WriteLine("=== Lista dostępnych endpointów ===");
-foreach (var endpoint in endpointDataSource.Endpoints)
+foreach (var endpoint in dataSource.Endpoints)
 {
-    var routeEndpoint = endpoint as RouteEndpoint;
-    if (routeEndpoint != null)
-    {
-        var httpMethods = routeEndpoint.Metadata
-            .OfType<HttpMethodMetadata>()
-            .FirstOrDefault()?.HttpMethods;
-
-        var controllerAction = routeEndpoint.Metadata
-            .OfType<ControllerActionDescriptor>()
-            .FirstOrDefault();
-
-        Console.WriteLine($"Route: {routeEndpoint.RoutePattern.RawText}, " +
-                          $"Methods: {(httpMethods != null ? string.Join(", ", httpMethods) : "ANY")}, " +
-                          $"Controller: {controllerAction?.ControllerName}, " +
-                          $"Action: {controllerAction?.ActionName}");
-    }
+    Console.WriteLine(endpoint.DisplayName);
 }
 Console.WriteLine("=== Koniec listy endpointów ===");
 
