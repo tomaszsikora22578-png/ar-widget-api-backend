@@ -2,6 +2,8 @@ using ArWidgetApi.Models;
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Middleware;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,5 +72,30 @@ app.UseCors(ClientAppCORS);
 app.UseAuthorization();
 app.UseMiddleware<ClientTokenMiddleware>();
 app.MapControllers();
+
+
+// logowanie endpoitn:
+var endpointDataSource = app.Services.GetRequiredService<EndpointDataSource>();
+Console.WriteLine("=== Lista dostępnych endpointów ===");
+foreach (var endpoint in endpointDataSource.Endpoints)
+{
+    var routeEndpoint = endpoint as RouteEndpoint;
+    if (routeEndpoint != null)
+    {
+        var httpMethods = routeEndpoint.Metadata
+            .OfType<HttpMethodMetadata>()
+            .FirstOrDefault()?.HttpMethods;
+
+        var controllerAction = routeEndpoint.Metadata
+            .OfType<ControllerActionDescriptor>()
+            .FirstOrDefault();
+
+        Console.WriteLine($"Route: {routeEndpoint.RoutePattern.RawText}, " +
+                          $"Methods: {(httpMethods != null ? string.Join(", ", httpMethods) : "ANY")}, " +
+                          $"Controller: {controllerAction?.ControllerName}, " +
+                          $"Action: {controllerAction?.ActionName}");
+    }
+}
+Console.WriteLine("=== Koniec listy endpointów ===");
 
 app.Run();
