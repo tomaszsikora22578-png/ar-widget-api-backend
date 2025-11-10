@@ -34,43 +34,42 @@ builder.Services.AddCors(options =>
 });
 
 // 2. Konfiguracja Bazy Danych (MySQL)
+// 2. Konfiguracja Bazy Danych (MySQL)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-//  POCZĄTEK NOWEJ LOGIKI DLA CLOUD SQL W CLOUD RUN 
 // Cloud Run automatycznie ustawia tę zmienną po dodaniu połączenia Cloud SQL w konsoli.
-var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"]; 
-var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance); 
+var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
+var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // Konfiguracja wersji Twojego serwera MySQL
-    var serverVersion = ServerVersion.Create(8, 0, 34, ServerType.MySql);
-    
+    var serverVersion = new MySqlServerVersion(new Version(8, 0, 34));
+
     if (isCloudRun)
     {
-        // Połączenie za pomocą Gniazda UNIX (wymagane w Cloud Run)
-        options.UseMySql(connectionString,
+        // Gniazdo UNIX (zalecane dla Cloud SQL + Cloud Run)
+        var cloudSqlSocketPath = $"/cloudsql/{cloudSqlInstance}";
+        var cloudSqlConnectionString =
+            $"{connectionString};Server={cloudSqlSocketPath}";
+
+        options.UseMySql(
+            cloudSqlConnectionString,
             serverVersion,
-            mysqlOptions => mysqlOptions
-                .ServerType(ServerType.MySql)
-                .UseMySqlOptions(conn => conn
-                    // Ustawienie Server na nazwę instancji Cloud SQL, które jest używane wewnętrznie
-                    .Server(cloudSqlInstance)
-                    .SocketFactory(typeof(MySqlUnixDomainSocketFactory))
-                )
-        );
-        Console.WriteLine($"[INFO] Użyto połączenia Gniazda UNIX dla Cloud SQL: {cloudSqlInstance}");
+            mySqlOptions =>
+            {
+                mySqlOptions.EnableRetryOnFailure();
+            });
+
+        Console.WriteLine($"[INFO] Użyto Cloud SQL socket: {cloudSqlSocketPath}");
     }
     else
     {
-        // Standardowe połączenie (np. środowisko lokalne)
-        options.UseMySql(
-            connectionString,
-            serverVersion
-        );
-        Console.WriteLine("[INFO] Użyto standardowego połączenia MySQL.");
+        // Połączenie lokalne (np. przy uruchamianiu z Visual Studio)
+        options.UseMySql(connectionString, serverVersion);
+        Console.WriteLine("[INFO] Użyto lokalnego połączenia MySQL.");
     }
 });
+
 // KONIEC NOWEJ LOGIKI DLA CLOUD SQL W CLOUD RUN 
 
 // Dodanie Serwisów do obsługi Kontrolerów API
