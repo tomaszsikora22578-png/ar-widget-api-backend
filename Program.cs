@@ -5,43 +5,37 @@ using ArWidgetApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CORS ---
+// Nazwa polityki CORS
 const string ClientAppCORS = "_clientAppCORS";
+
+// 1. Serwisy
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS, policy =>
     {
         policy.WithOrigins(
-                    "http://127.0.0.1:5500",
-                    "https://tomaszsikora22578-png.github.io",
-                    "https://ar-widget-project.firebaseapp.com",
-                    "https://ar-widget-project.web.app"
-                )
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+                "http://127.0.0.1:5500",
+                "https://tomaszsikora22578-png.github.io",
+                "https://ar-widget-project.firebaseapp.com",
+                "https://ar-widget-project.web.app"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
-// --- 2. Swagger ---
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// --- 3. Baza danych MySQL (lokalnie i Cloud SQL) ---
+// 2. Konfiguracja bazy danych
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// W Cloud Run ta zmienna jest ustawiana automatycznie
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
-// Jeśli jesteśmy w Cloud Run – użyjemy Unix Socket
 if (isCloudRun)
 {
-    // Budujemy connection string z Unix Socket
-    var builderCloud = new MySqlConnector.MySqlConnectionStringBuilder(connectionString)
-    {
-        UnixSocket = $"/cloudsql/{cloudSqlInstance}"
-    };
-    connectionString = builderCloud.ConnectionString;
+    // Połączenie przez Cloud SQL Unix socket
+    connectionString = $"Server=/cloudsql/{cloudSqlInstance};Database=ArWidgetDb;Uid=ar-widget-mysql;Pwd=0S3I5ggLGtP71c]V;";
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -50,6 +44,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
     options.UseMySql(connectionString, serverVersion, mySqlOptions =>
     {
+        // Retry w razie chwilowych problemów z połączeniem
         mySqlOptions.EnableRetryOnFailure();
     });
 
@@ -58,14 +53,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         : "[INFO] Użyto lokalnego połączenia MySQL.");
 });
 
-// --- 4. Kontrolery i autoryzacja ---
+// Dodanie kontrolerów
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 
-// --- 5. Build aplikacji ---
 var app = builder.Build();
 
-// --- 6. Middleware i swagger ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -75,9 +68,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors(ClientAppCORS);
 app.UseAuthorization();
-
-// Custom middleware do weryfikacji tokenów
 app.UseMiddleware<ClientTokenMiddleware>();
-
 app.MapControllers();
+
 app.Run();
