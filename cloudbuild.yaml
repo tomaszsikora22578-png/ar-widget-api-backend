@@ -1,17 +1,4 @@
 steps:
-# 0️Przywrócenie narzędzi EF i migracja
-- name: 'mcr.microsoft.com/dotnet/sdk:8.0'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - |
-      dotnet tool restore
-      dotnet restore
-      dotnet build
-      dotnet ef migrations remove --force || true
-      dotnet ef migrations add InitialMigration
-      dotnet ef database update
-
 #  Budowanie obrazu Dockera
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA', '.' ]
