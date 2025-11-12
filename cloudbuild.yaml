@@ -1,46 +1,38 @@
 steps:
-# Krok 1: Budowanie obrazu Dockera za pomocą Dockerfile.
-# Używamy zmiennej podstawienia (_AR_IMAGE), aby tagować obraz adresem Artifact Registry (europe-central2).
-# Tagujemy obraz używając wbudowanych zmiennych Cloud Build bezpośrednio w argumencie.
-# Format: [REGION]-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/[IMAGE_NAME]:[TAG]
+# 0️Przywrócenie narzędzi EF i migracja
+- name: 'mcr.microsoft.com/dotnet/sdk:8.0'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      dotnet tool restore
+      dotnet restore
+      dotnet build
+      dotnet ef migrations remove --force || true
+      dotnet ef migrations add InitialMigration
+      dotnet ef database update
+
+#  Budowanie obrazu Dockera
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', '${_AR_IMAGE}', '.' ]
   args: [ 'build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA', '.' ]
 
-# Krok 2: Przesłanie obrazu do Artifact Registry.
-# Wysłanie obrazu do regionalnego rejestru (europe-central2-docker.pkg.dev).
-# Wysłanie do regionalnego rejestru.
+#  Wypychanie obrazu
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'push', '${_AR_IMAGE}' ]
   args: [ 'push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA' ]
 
-# Krok 3: Wdrożenie na Cloud Run.
-# Używamy regionalnego obrazu z AR i wdrażamy w regionie europe-central2.
-# Używamy tego samego, pełnego adresu obrazu do wdrożenia.
+# 3️ Deployment na Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
-entrypoint: 'gcloud'
-args:
-- 'run'
-- 'deploy'
-- 'ar-widget-api'
-- '--image'
-  - '${_AR_IMAGE}'
-  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA'
-- '--region'
-- 'europe-central2'
-- '--allow-unauthenticated'
-- '--platform'
-- 'managed'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'ar-widget-api'
+    - '--image'
+    - 'europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA'
+    - '--region'
+    - 'europe-central2'
+    - '--allow-unauthenticated'
+    - '--platform'
+    - 'managed'
 
-# Definicja zmiennej podstawienia, która musi znajdować się poza sekcją 'steps'.
-# To pole rozwiązuje problem "unknown field 'variables'".
-substitutions:
-  # Adres, który pomija globalny gcr.io/locations/us i używa regionalnego europe-central2.
-  _AR_IMAGE: europe-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/ar-widget-api:$COMMIT_SHA
-# Opcjonalnie: sekcja images nie jest wymagana, ale jeśli jest, musi używać poprawnej składni.
-# Zostawmy ją dla czystości.
-
-images:
-- '${_AR_IMAGE}'
 options:
-logging: CLOUD_LOGGING_ONLY
+  logging: CLOUD_LOGGING_ONLY
