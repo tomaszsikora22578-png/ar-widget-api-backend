@@ -1,18 +1,13 @@
-using ArWidgetApi.Models;
 using ArWidgetApi.Data;
-using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Middleware;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Nazwa polityki CORS
+// --------------------
+// 1️⃣ Konfiguracja CORS
+// --------------------
 const string ClientAppCORS = "_clientAppCORS";
-
-// 1. Serwisy
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
@@ -29,7 +24,9 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 2. Konfiguracja bazy danych
+// --------------------
+// 2️⃣ Konfiguracja bazy danych
+// --------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
@@ -43,10 +40,8 @@ if (isCloudRun)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var serverVersion = ServerVersion.AutoDetect(connectionString);
-
     options.UseMySql(connectionString, serverVersion, mySqlOptions =>
     {
-        // Retry w razie chwilowych problemów z połączeniem
         mySqlOptions.EnableRetryOnFailure();
     });
 
@@ -55,25 +50,39 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         : "[INFO] Użyto lokalnego połączenia MySQL.");
 });
 
-// Dodanie kontrolerów
+// --------------------
+// 3️⃣ Dodanie kontrolerów i Swagger
+// --------------------
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// --------------------
+// 4️⃣ Middleware pipeline
+// --------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors(ClientAppCORS);
+
 app.UseHttpsRedirection();
-app.UseAuthorization();
+
+// ⚡ CORS MUSI być przed middleware tokenów
+app.UseCors(ClientAppCORS);
+
+// Middleware sprawdzający tokeny
 app.UseMiddleware<ClientTokenMiddleware>();
+
+app.UseAuthorization();
 app.MapControllers();
 
-
-// logowanie endpoitn:
+// --------------------
+// 5️⃣ Logowanie endpointów przy starcie
+// --------------------
 var dataSource = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>();
 Console.WriteLine("=== Lista dostępnych endpointów ===");
 foreach (var endpoint in dataSource.Endpoints)
@@ -82,4 +91,7 @@ foreach (var endpoint in dataSource.Endpoints)
 }
 Console.WriteLine("=== Koniec listy endpointów ===");
 
+// --------------------
+// 6️⃣ Uruchomienie aplikacji
+// --------------------
 app.Run();
