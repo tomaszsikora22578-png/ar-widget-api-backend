@@ -1,6 +1,6 @@
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http; 
+using Microsoft.AspNetCore.Http;
 
 namespace ArWidgetApi.Middleware
 {
@@ -15,23 +15,21 @@ namespace ArWidgetApi.Middleware
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
         {
-            // KLUCZOWA POPRAWKA DLA CORS
-            // Żądania OPTIONS (Preflight) są wysyłane przez przeglądarkę BEZ tokena.
-            // Musimy je przepuścić, aby middleware CORS mogło poprawnie zwrócić nagłówki.
+            // 1️⃣ Przepuść preflight (OPTIONS)
             if (context.Request.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
             {
-                await _next(context);
-                return;
+                context.Response.StatusCode = StatusCodes.Status204NoContent;
+                return; // Nie sprawdzamy tokena dla preflight
             }
-            
+
             string? clientToken = null;
 
-            // 1. Spróbuj odczytać niestandardowy nagłówek X-Client-Token
+            // 2️⃣ Spróbuj odczytać nagłówek X-Client-Token
             if (context.Request.Headers.TryGetValue("X-Client-Token", out var tokenValues))
             {
                 clientToken = tokenValues.FirstOrDefault();
             }
-            // 2. Jeśli brak, spróbuj Authorization: Bearer <token>
+            // 3️⃣ Jeśli brak, spróbuj Authorization: Bearer <token>
             else if (context.Request.Headers.TryGetValue("Authorization", out var authValues))
             {
                 var authHeader = authValues.FirstOrDefault();
@@ -41,7 +39,7 @@ namespace ArWidgetApi.Middleware
                 }
             }
 
-            // 3. Jeśli nadal brak tokena -> 401 Unauthorized
+            // 4️⃣ Brak tokena -> 401 Unauthorized
             if (string.IsNullOrEmpty(clientToken))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -49,7 +47,7 @@ namespace ArWidgetApi.Middleware
                 return;
             }
 
-            // 4. Sprawdź token w bazie
+            // 5️⃣ Sprawdź token w bazie
             var client = await dbContext.Clients
                 .FirstOrDefaultAsync(c => c.ClientToken == clientToken && c.SubscriptionStatus == "Active");
 
@@ -60,7 +58,7 @@ namespace ArWidgetApi.Middleware
                 return;
             }
 
-            // 5. Token OK -> przejdź dalej
+            // 6️⃣ Token OK -> przejdź dalej
             await _next(context);
         }
     }
