@@ -4,36 +4,38 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// 1️⃣ Konfiguracja CORS
-// --------------------
+// 🔹 Nazwa polityki CORS
 const string ClientAppCORS = "_clientAppCORS";
 
+// 🔹 Rejestracja serwisów
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// 🔹 Konfiguracja CORS — dokładne domeny frontendu
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS, policy =>
     {
         policy.WithOrigins(
-                "http://127.0.0.1:5500",
-                "https://tomaszsikora22578-png.github.io",
-                "https://ar-widget-project.firebaseapp.com",
-                "https://ar-widget-project.web.app"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            "http://127.0.0.1:5500",
+            "https://tomaszsikora22578-png.github.io",
+            "https://ar-widget-project.firebaseapp.com",
+            "https://ar-widget-project.web.app"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
-// --------------------
-// 2️⃣ Konfiguracja bazy danych
-// --------------------
+// 🔹 Konfiguracja połączenia z bazą
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
 if (isCloudRun)
 {
-    // Połączenie przez Cloud SQL Unix socket
     connectionString = $"Server=/cloudsql/{cloudSqlInstance};Database=ArWidgetDb;Uid=ar-widget-mysql;Pwd=0S3I5ggLGtP71c]V;";
 }
 
@@ -44,45 +46,37 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
         mySqlOptions.EnableRetryOnFailure();
     });
-
-    Console.WriteLine(isCloudRun
-        ? $"[INFO] Użyto Cloud SQL przez UNIX socket: {cloudSqlInstance}"
-        : "[INFO] Użyto lokalnego połączenia MySQL.");
 });
 
-// --------------------
-// 3️⃣ Dodanie kontrolerów i Swagger
-// --------------------
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddAuthorization();
+// 🔹 Logowanie do konsoli
+Console.WriteLine(isCloudRun
+    ? $"[INFO] Użyto Cloud SQL przez UNIX socket: {cloudSqlInstance}"
+    : "[INFO] Użyto lokalnego połączenia MySQL.");
 
+// 🔹 Tworzymy aplikację
 var app = builder.Build();
 
-// --------------------
-// 4️⃣ Middleware pipeline
-// --------------------
+// 🔹 Swagger tylko lokalnie
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// 🔹 Middleware kolejność — to BARDZO ważne
 app.UseHttpsRedirection();
 
-// ⚡ CORS MUSI być przed middleware tokenów
+// ✅ CORS musi być PRZED middleware tokenowym
 app.UseCors(ClientAppCORS);
 
-// Middleware sprawdzający tokeny
+// 🔹 Middleware autoryzacji tokenem klienta
 app.UseMiddleware<ClientTokenMiddleware>();
 
+// 🔹 Autoryzacja / kontrolery
 app.UseAuthorization();
 app.MapControllers();
 
-// --------------------
-// 5️⃣ Logowanie endpointów przy starcie
-// --------------------
+// 🔹 Debug: logowanie endpointów
 var dataSource = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>();
 Console.WriteLine("=== Lista dostępnych endpointów ===");
 foreach (var endpoint in dataSource.Endpoints)
@@ -91,7 +85,4 @@ foreach (var endpoint in dataSource.Endpoints)
 }
 Console.WriteLine("=== Koniec listy endpointów ===");
 
-// --------------------
-// 6️⃣ Uruchomienie aplikacji
-// --------------------
 app.Run();
