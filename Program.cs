@@ -66,9 +66,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
 app.UseCors(ClientAppCORS);
+app.UseHttpsRedirection();
 app.UseAuthorization();
 app.UseMiddleware<ClientTokenMiddleware>();
 app.MapControllers();
