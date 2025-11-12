@@ -1,6 +1,5 @@
 using ArWidgetApi.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 
 namespace ArWidgetApi.Middleware
 {
@@ -15,21 +14,22 @@ namespace ArWidgetApi.Middleware
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
         {
-            // 1️⃣ Przepuść preflight (OPTIONS)
+            // 🔹 Przepuść OPTIONS — potrzebne dla CORS preflight
             if (context.Request.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
             {
-                context.Response.StatusCode = StatusCodes.Status204NoContent;
-                return; // Nie sprawdzamy tokena dla preflight
+                await _next(context);
+                return;
             }
 
             string? clientToken = null;
 
-            // 2️⃣ Spróbuj odczytać nagłówek X-Client-Token
+            // 🔹 1. Nagłówek X-Client-Token
             if (context.Request.Headers.TryGetValue("X-Client-Token", out var tokenValues))
             {
                 clientToken = tokenValues.FirstOrDefault();
             }
-            // 3️⃣ Jeśli brak, spróbuj Authorization: Bearer <token>
+
+            // 🔹 2. Lub Authorization: Bearer <token>
             else if (context.Request.Headers.TryGetValue("Authorization", out var authValues))
             {
                 var authHeader = authValues.FirstOrDefault();
@@ -39,26 +39,27 @@ namespace ArWidgetApi.Middleware
                 }
             }
 
-            // 4️⃣ Brak tokena -> 401 Unauthorized
+            // 🔹 3. Brak tokena
             if (string.IsNullOrEmpty(clientToken))
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Client token is required.");
+                await context.Response.WriteAsJsonAsync(new { error = "Brak tokena klienta (X-Client-Token lub Authorization)." });
                 return;
             }
 
-            // 5️⃣ Sprawdź token w bazie
+            // 🔹 4. Weryfikacja w bazie
             var client = await dbContext.Clients
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.ClientToken == clientToken && c.SubscriptionStatus == "Active");
 
             if (client == null)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Invalid client token or inactive subscription.");
+                await context.Response.WriteAsJsonAsync(new { error = "Nieprawidłowy token lub subskrypcja nieaktywna." });
                 return;
             }
 
-            // 6️⃣ Token OK -> przejdź dalej
+            // 🔹 5. OK → przepuść dalej
             await _next(context);
         }
     }
