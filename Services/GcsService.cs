@@ -1,29 +1,29 @@
+// GcsService.cs
 using System.Net.Http;
 using System;
 using System.IO; 
 using System.Text;
 using System.Security.Cryptography; 
-// USUNIĘTO: using Google.Apis.Auth.OAuth2; // To było problematyczne
-// USUNIĘTO: using Google.Apis.Auth.OAuth2.ServiceAccount; // TO CAŁY CZAS BLOKOWAŁO KOMPILACJĘ
 using Newtonsoft.Json; 
 
 namespace ArWidgetApi.Services 
 {
-    // Klasa pomocnicza do deserializacji klucza JSON
-    private class ServiceAccountKey
-    {
-        [JsonProperty("private_key_id")]
-        public string PrivateKeyId { get; set; }
-        
-        [JsonProperty("private_key")]
-        public string PrivateKey { get; set; }
-        
-        [JsonProperty("client_email")]
-        public string ClientEmail { get; set; }
-    }
-
     public class GcsService
     {
+        // Klasa pomocnicza do deserializacji klucza JSON - TERAZ ZAGNIEDZONA W KLASIE GcsService
+        private class ServiceAccountKey
+        {
+            // Można usunąć to pole, ponieważ nie jest używane w logice
+            // [JsonProperty("private_key_id")]
+            // public string PrivateKeyId { get; set; }
+            
+            [JsonProperty("private_key")]
+            public string PrivateKey { get; set; }
+            
+            [JsonProperty("client_email")]
+            public string ClientEmail { get; set; }
+        }
+
         private const string BucketName = "ar-models-dla-klientow";
         private readonly string _serviceAccountEmail;
         private readonly RSA _rsaSigner; 
@@ -45,13 +45,12 @@ namespace ArWidgetApi.Services 
             
             _serviceAccountEmail = keyData.ClientEmail;
             
-            // --- 2. KONWERSJA KLUCZA PEM NA OBIEKT .NET RSA (NIEZMIENIONE) ---
-            var keyInPemFormat = keyData.PrivateKey; // Klucz jest już w formacie PEM
+            // --- 2. KONWERSJA KLUCZA PEM NA OBIEKT .NET RSA ---
+            var keyInPemFormat = keyData.PrivateKey; 
             
             _rsaSigner = RSA.Create();
             try
             {
-                // Załaduj klucz prywatny z formatu PEM (jest on w polu "private_key" JSON)
                 _rsaSigner.ImportFromPem(keyInPemFormat);
             }
             catch (Exception ex)
@@ -60,7 +59,7 @@ namespace ArWidgetApi.Services 
             }
         }
 
-        // Metoda GenerateSignedUrl pozostaje bez zmian (korzysta z _rsaSigner i _serviceAccountEmail)
+        // Metoda GenerateSignedUrl pozostaje bez zmian
         public string GenerateSignedUrl(string objectName)
         {
             TimeSpan duration = TimeSpan.FromMinutes(5);
