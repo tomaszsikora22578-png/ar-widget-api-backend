@@ -4,52 +4,47 @@ using System.Net.Http;
 using System;
 using System.IO; 
 using Google.Apis.Auth.OAuth2; 
-using Google.Apis.Auth.OAuth2.ServiceAccount; // Wymagane do ServiceAccountCredential
+// USUNIĘTO: using Google.Apis.Auth.OAuth2.ServiceAccount; 
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
         private const string BucketName = "ar-models-dla-klientow";
-        private readonly ServiceAccountCredential _signingCredential; 
+        private readonly StorageClient _storageClient;
 
         public GcsService()
         {
             string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
-            GoogleCredential generalCredential;
+            GoogleCredential credential;
             
             if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
             {
-                 generalCredential = GoogleCredential.GetApplicationDefault();
+                 // Użycie domyślnej autoryzacji dla Cloud Run
+                 credential = GoogleCredential.GetApplicationDefault();
             }
             else
             {
-                // Uproszczone wczytywanie klucza z pliku
-                generalCredential = GoogleCredential.FromFile(keyPath);
+                // Wczytanie klucza z pliku (najczystszy sposób)
+                credential = GoogleCredential.FromFile(keyPath);
             }
-
-            // KLUCZOWY KROK: Rzutowanie na ServiceAccountCredential musi pozostać,
-            // ponieważ jest to typ wewnętrzny wymagany do podpisu.
-            _signingCredential = generalCredential.UnderlyingCredential as ServiceAccountCredential;
             
-            if (_signingCredential == null)
-            {
-                throw new InvalidOperationException("Nie udało się uzyskać ServiceAccountCredential do podpisywania URLi. Sprawdź, czy konto serwisowe jest prawidłowo skonfigurowane.");
-            }
+            // TWORZYMY INSTANCJĘ KLIENTA
+            _storageClient = StorageClient.Create(credential);
         }
 
         public string GenerateSignedUrl(string objectName)
         {
-            TimeSpan duration = TimeSpan.FromMinutes(5); 
+            // Zmieniamy sygnaturę, aby użyć przeciążenia akceptującego StorageClient
             
-            // Używamy V2 Signed URL, jedynej sygnatury, która może zadziałać 
-            // z przekazaniem ServiceAccountCredential jako piątego argumentu.
+            // JEST TO JEDYNA STABILNA, STATYCZNA METODA, KTÓRA MUSI ISTNIEĆ:
+            // UrlSigner.Sign(StorageClient, bucket, object, duration, method)
             string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
+                _storageClient, // Przekazujemy klienta z wczytanymi poświadczeniami
                 BucketName,
                 objectName,
-                duration,
-                HttpMethod.Get,
-                _signingCredential 
+                TimeSpan.FromMinutes(5),
+                HttpMethod.Get
             );
             
             return signedUrl;
