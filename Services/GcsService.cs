@@ -1,10 +1,8 @@
-using Google.Cloud.Storage.V1;
+using Google.Cloud.Storage.V1; // Zawiera klasę StorageClient
 using System.Net.Http;
 using System;
-using Google.Apis.Auth.OAuth2; // DODAJ
-using Google.Apis.Storage.v1.Data; // DODAJ
-using System.Security.Cryptography.X509Certificates;
-using Google.Cloud.Storage.V1.Signing; // DODAJ
+using Google.Apis.Auth.OAuth2; // Zawiera GoogleCredential
+using Google.Cloud.Storage.V1.Signing; // TO ZAWIERA KLASĘ UrlSigner
 
 namespace ArWidgetApi.Services 
 {
