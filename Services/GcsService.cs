@@ -2,44 +2,38 @@
 using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
-using Google.Apis.Auth.OAuth2; 
-// USUŃ: using Google.Cloud.Storage.V1.Signing; 
+// USUŃ: using Google.Apis.Auth.OAuth2; 
+// USUŃ: using Google.Cloud.Storage.V1.Signing; // Tego i tak nie widać
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
+        private readonly StorageClient _storageClient; // Teraz używamy instancji klienta
         private const string BucketName = "ar-models-dla-klientow"; 
-
-        // KONTENERY CLOUD RUN UŻYWAJĄ INNEGO MECHANIZMU DO PODPISYWANIA URLI
-        // UŻYJEMY METODY CreateSignedUrl, KTÓRA JEST DOSTĘPNA W PODSTAWOWEJ BIBLIOTECE.
-
-        // Do tej metody POTRZEBUJEMY JAWNIE USTAWIĆ POŚWIADCZENIA.
-        // W Cloud Run, GoogleCredential.GetApplicationDefault() powinien zadziałać.
-        private readonly GoogleCredential _credential; 
+        
+        // Ta metoda nie działa w Cloud Run bez klucza JSON:
+        // private readonly GoogleCredential _credential; 
 
         public GcsService()
         {
-            // To jest asynchroniczne, ale w konstruktorze musi być synchroniczne.
-            // Użycie GetApplicationDefault() jest poprawne w kontekście Cloud Run.
-            _credential = GoogleCredential.GetApplicationDefault(); 
+            // StorageClient.Create() automatycznie pobiera poświadczenia konta serwisowego
+            // Cloud Run, co jest KLUCZOWE dla działania tej metody.
+            _storageClient = StorageClient.Create(); 
         }
 
         public string GenerateSignedUrl(string objectName)
         {
-            // Domyślny czas wygaśnięcia
             var expiration = DateTime.UtcNow.AddMinutes(5); 
 
-            // Używamy metody statycznej, która jest bardziej stabilna
-            string signedUrl = UrlSigner.CreateSignedUrl(
+            // Używamy metody instancyjnej StorageClient
+            string signedUrl = _storageClient.CreateSignedUrl(
                 bucket: BucketName,
                 objectName: objectName,
                 expiration: expiration,
-                method: HttpMethod.Get,
-                credential: _credential // Przekazujemy poświadczenia
-                // Opcjonalnie: ContentType = "model/gltf-binary" (dla glb)
+                method: HttpMethod.Get
             );
-
+            
             return signedUrl;
         }
     }
