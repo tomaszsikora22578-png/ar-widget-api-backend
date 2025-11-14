@@ -1,6 +1,6 @@
 using MySql.Data.MySqlClient;
 using Dapper;
-using ArWidget.Models; // Pamiętaj o ModelDataDto
+using ArWidgetApi.Models; // Pamiętaj o ModelDataDto
 
 public class DataAccessService
 {
