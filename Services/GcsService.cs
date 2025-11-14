@@ -1,40 +1,46 @@
-using Google.Cloud.Storage.V1; // Zawiera klasę StorageClient
+// GcsService.cs
+using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
-using Google.Apis.Auth.OAuth2; // Zawiera GoogleCredential
-using Google.Cloud.Storage.V1.Signing; // TO ZAWIERA KLASĘ UrlSigner
+using Google.Apis.Auth.OAuth2; 
+// USUŃ: using Google.Cloud.Storage.V1.Signing; 
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
-        // ... Pola read-only ...
         private const string BucketName = "ar-models-dla-klientow"; 
-        
-        // POTRZEBUJEMY TEGO DLA GENEROWANIA URL
-        private readonly UrlSigner _urlSigner; // NOWE POLE
+
+        // KONTENERY CLOUD RUN UŻYWAJĄ INNEGO MECHANIZMU DO PODPISYWANIA URLI
+        // UŻYJEMY METODY CreateSignedUrl, KTÓRA JEST DOSTĘPNA W PODSTAWOWEJ BIBLIOTECE.
+
+        // Do tej metody POTRZEBUJEMY JAWNIE USTAWIĆ POŚWIADCZENIA.
+        // W Cloud Run, GoogleCredential.GetApplicationDefault() powinien zadziałać.
+        private readonly GoogleCredential _credential; 
 
         public GcsService()
         {
-            // UrlSigner automatycznie używa poświadczeń Cloud Run
-            // W środowisku Google Cloud, to działa automatycznie.
-            var credential = GoogleCredential.GetApplicationDefault();
-            _urlSigner = UrlSigner.FromCredential(credential); // NOWA INICJALIZACJA
+            // To jest asynchroniczne, ale w konstruktorze musi być synchroniczne.
+            // Użycie GetApplicationDefault() jest poprawne w kontekście Cloud Run.
+            _credential = GoogleCredential.GetApplicationDefault(); 
         }
 
         public string GenerateSignedUrl(string objectName)
         {
-            var expiration = DateTimeOffset.UtcNow.AddMinutes(5);
-            
-            // NOWA IMPLEMENTACJA Z UŻYCIEM UrlSigner
-            var url = _urlSigner.Sign(
-                BucketName,
-                objectName,
-                expiration,
-                HttpMethod.Get
+            // Domyślny czas wygaśnięcia
+            var expiration = DateTime.UtcNow.AddMinutes(5); 
+
+            // Używamy metody statycznej, która jest bardziej stabilna
+            string signedUrl = UrlSigner.CreateSignedUrl(
+                bucket: BucketName,
+                objectName: objectName,
+                expiration: expiration,
+                method: HttpMethod.Get,
+                credential: _credential // Przekazujemy poświadczenia
+                // Opcjonalnie: ContentType = "model/gltf-binary" (dla glb)
             );
-            
-            return url;
+
+            return signedUrl;
         }
     }
 }
