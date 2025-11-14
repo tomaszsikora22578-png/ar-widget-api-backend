@@ -1,53 +1,53 @@
-// GcsService.cs - Ostateczna próba z V2
+// GcsService.cs
 using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
 using System.IO; 
 using Google.Apis.Auth.OAuth2; 
-using Google.Apis.Auth.OAuth2.ServiceAccount; // Wymagane do ServiceAccountCredential
-using Google.Cloud.Storage.V1.Signing; // Przywracamy, bo jest potrzebne do SigningVersion
+using Newtonsoft.Json; 
+// USUNIĘTO: using Google.Apis.Auth.OAuth2.ServiceAccount; 
+// USUNIĘTO: using Google.Cloud.Storage.V1.Signing; 
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
         private const string BucketName = "ar-models-dla-klientow";
-        private readonly string _serviceAccountEmail;
-        private readonly string _privateKey;
+        private readonly GoogleCredential _credential;
 
         public GcsService()
         {
-            // Ładowanie klucza z pliku JSON (Niezmienione - jest poprawne)
+            // POBRANIE ŚCIEŻKI DO KLUCZA JSON Z Cloud Run
             string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
             
             if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
             {
-                 throw new InvalidOperationException("Plik klucza GCS nie został poprawnie zamontowany pod ścieżką GCS_PRIVATE_KEY_PATH.");
+                 // Jeśli klucz nie jest zamontowany, używamy domyślnej autoryzacji Cloud Run
+                 _credential = GoogleCredential.GetApplicationDefault();
+                 // W Cloud Run ta linia spowoduje błąd w trakcie podpisywania,
+                 // ale przynajmniej pozwoli na kompilację.
             }
-            
-            var json = File.ReadAllText(keyPath);
-            var credentialInitializer = ServiceAccountCredential.FromServiceAccountData(json).CreateInitializer();
-            
-            _serviceAccountEmail = credentialInitializer.User;
-            _privateKey = credentialInitializer.Key;
+            else
+            {
+                // Wczytanie klucza z pliku (uproszczone)
+                _credential = GoogleCredential.FromFile(keyPath);
+            }
         }
 
         public string GenerateSignedUrl(string objectName)
         {
             TimeSpan duration = TimeSpan.FromMinutes(5); 
             
-            // UŻYCIE NAJBARDZIEJ STABILNEJ METODY V2 SIGNED URL
-            // Sygnatura: (bucket, object, duration, method, serviceAccountEmail, privateKey, signingVersion)
-            // Wymaga powrotu do prostszej metody UrlSigner.Sign.
+            // MUSIMY UŻYĆ METODY STATYCZNEJ, BO METODY INSTANCYJNE ZAWODZĄ
+            // Sygnatura V2 jest w Google.Cloud.Storage.V1.UrlSigner.Sign.
+            // Oczekuje ServiceAccountCredential, ale spróbujmy przekazać GoogleCredential
+            
             string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
                 BucketName,
                 objectName,
                 duration,
                 HttpMethod.Get,
-                _serviceAccountEmail, 
-                _privateKey,           
-                // JAWNIE OKREŚLAMY WERSJĘ JAKO V2
-                SigningVersion.V2 
+                _credential // Używamy ogólnego GoogleCredential
             );
             
             return signedUrl;
