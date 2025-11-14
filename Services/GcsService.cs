@@ -64,27 +64,41 @@ public string GenerateSignedUrl(string objectName)
 {
     TimeSpan duration = TimeSpan.FromMinutes(5);
     
-    // Upewniamy się, że format daty jest poprawny (UTC)
+    // Kluczowe: Format daty jest poprawny (UTC)
     string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); 
     string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
     // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
     string urlPath = $"/{BucketName}/{objectName}";
     
-    // PRAWIDŁOWY FORMAT KANONICZNEGO ŻĄDANIA DLA GCS SIGNED URL:
+    // Używamy string.Concat, aby uniknąć potencjalnych błędów z string interpolation
+    
+    // Kanoniczne Nagłówki (host i x-goog-date)
+    string canonicalHeaders = string.Concat(
+        "host:storage.googleapis.com\n", // Nagłówek 1
+        "x-goog-date:", timestamp, "\n"  // Nagłówek 2
+    );
+
+    // Lista Nagłówków Podpisanych
+    string signedHeaders = "host;x-goog-date";
+
+    // Kanoniczne Żądanie (Canonical Request)
     // 1. HTTP_METHOD (GET)
     // 2. URI (/bucket/object)
     // 3. QUERY_STRING (pusta, bo parametry są w URL)
     // 4. CANONICAL_HEADERS (host, x-goog-date)
-    // 5. SIGNED_HEADERS (host;x-goog-date)
-    // 6. PAYLOAD_HASH (pusty, bo GET)
+    // 5. \n (Pusta linia dla Payload Hash)
+    // 6. SIGNED_HEADERS (host;x-goog-date)
     
-    // Kluczowa zmiana: Poprawne użycie \n dla separatorów
-    string canonicalRequest = $"GET\n{urlPath}\n\n" + // GET, URI, Query String (pusta)
-                              $"host:storage.googleapis.com\n" + // Nagłówek 1
-                              $"x-goog-date:{timestamp}\n\n" + // Nagłówek 2 + PUSTA LINIA (dla Payload Hash)
-                              $"host;x-goog-date"; // Signed Headers (BEZ KOŃCOWEGO \n!)
-
+    string canonicalRequest = string.Concat(
+        "GET\n", 
+        urlPath, "\n", // URI
+        "\n", // Query String (pusta)
+        canonicalHeaders, // Nagłówki + \n
+        "\n", // Payload Hash (pusta linia)
+        signedHeaders // Signed Headers (BEZ KOŃCOWEGO \n!)
+    );
+    
     // String To Sign
     string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
 
@@ -93,7 +107,6 @@ public string GenerateSignedUrl(string objectName)
     using (var sha256 = SHA256.Create())
     {
         byte[] data = Encoding.UTF8.GetBytes(stringToSign);
-        // Używamy Pkcs1 dla zgodności z V4
         signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     }
 
@@ -106,7 +119,7 @@ public string GenerateSignedUrl(string objectName)
                         $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail)}%2F{dateStamp}%2Fauto%2Fstorage%2Fgoog4_request" +
                         $"&X-Goog-Date={timestamp}" +
                         $"&X-Goog-Expires={(long)duration.TotalSeconds}" +
-                        $"&X-Goog-SignedHeaders=host%3Bx-goog-date";
+                        $"&X-Goog-SignedHeaders={Uri.EscapeDataString(signedHeaders.Replace(";", "%3B"))}"; // Kodowanie SignedHeaders
                         
     return signedUrl;
 }
