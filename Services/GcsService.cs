@@ -23,11 +23,21 @@ namespace ArWidgetApi.Services
 
         public GcsService()
         {
-            string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
-            if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
-                throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany.");
+            // Pobranie JSON z ENV lub z pliku
+            string json = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_JSON");
+            if (!string.IsNullOrEmpty(json))
+            {
+                // zamiana literalnych \n na prawdziwe newline
+                json = json.Replace("\\n", "\n");
+            }
+            else
+            {
+                string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
+                if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
+                    throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany.");
+                json = File.ReadAllText(keyPath);
+            }
 
-            var json = File.ReadAllText(keyPath);
             var keyData = JsonConvert.DeserializeObject<ServiceAccountKey>(json)
                           ?? throw new InvalidOperationException("Nie udało się wczytać danych klucza GCS.");
 
@@ -36,9 +46,12 @@ namespace ArWidgetApi.Services
             _rsa.ImportFromPem(keyData.PrivateKey);
         }
 
-        // *****************************************************
-        // GET - pobieranie pliku
-        // *****************************************************
+        /// <summary>
+        /// Generuje podpisany URL GET do pliku w GCS.
+        /// </summary>
+        /// <param name="objectName">Ścieżka obiektu w bucket</param>
+        /// <param name="expiresSeconds">Czas ważności w sekundach (domyślnie 300)</param>
+        /// <returns>Signed URL do GET</returns>
         public string GenerateSignedUrl(string objectName, int expiresSeconds = 300)
         {
             string method = "GET";
@@ -52,12 +65,14 @@ namespace ArWidgetApi.Services
 
             string canonicalUri = $"/{BucketName}/{objectName}";
 
-            // canonical headers i signed headers
-            string canonicalHeaders = $"host:{host}\n";
-            string signedHeaders = "host";
+            // -------------------------------
+            // canonical headers + signed headers
+            // -------------------------------
+            string canonicalHeaders = $"host:{host}\n";  // tylko host
+            string signedHeaders = "host";               // tylko host
 
             // -------------------------------
-            // CanonicalQueryString (alfabetycznie posortowane)
+            // CanonicalQueryString
             // -------------------------------
             string[] queryParams =
             {
@@ -67,28 +82,34 @@ namespace ArWidgetApi.Services
                 $"X-Goog-Expires={expiresSeconds}",
                 $"X-Goog-SignedHeaders={signedHeaders}"
             };
-            Array.Sort(queryParams, StringComparer.Ordinal);
+            Array.Sort(queryParams, StringComparer.Ordinal); // wymagane sortowanie
             string canonicalQueryString = string.Join("&", queryParams);
 
+            // -------------------------------
             // canonical request
+            // -------------------------------
             string canonicalRequest =
                 $"{method}\n" +
                 $"{canonicalUri}\n" +
                 $"{canonicalQueryString}\n" +
                 $"{canonicalHeaders}\n" +
                 $"{signedHeaders}\n" +
-                $"UNSIGNED-PAYLOAD";
+                "UNSIGNED-PAYLOAD";
 
             string canonicalRequestHash = SHA256Hex(canonicalRequest);
 
+            // -------------------------------
             // string to sign
+            // -------------------------------
             string stringToSign =
                 "GOOG4-RSA-SHA256\n" +
                 $"{timestamp}\n" +
                 $"{credentialScope}\n" +
                 $"{canonicalRequestHash}";
 
+            // -------------------------------
             // podpis RSA
+            // -------------------------------
             byte[] signature = _rsa.SignData(
                 Encoding.UTF8.GetBytes(stringToSign),
                 HashAlgorithmName.SHA256,
@@ -96,7 +117,9 @@ namespace ArWidgetApi.Services
 
             string signatureHex = BitConverter.ToString(signature).Replace("-", "").ToLowerInvariant();
 
-            // final URL - escape tylko wartości
+            // -------------------------------
+            // final URL
+            // -------------------------------
             string[] urlParams =
             {
                 $"X-Goog-Algorithm=GOOG4-RSA-SHA256",
@@ -110,9 +133,9 @@ namespace ArWidgetApi.Services
             return $"https://{host}{canonicalUri}?{finalUrlQuery}&X-Goog-Signature={signatureHex}";
         }
 
-        // *****************************************************
+        // -------------------------------
         // SHA256 Hex helper
-        // *****************************************************
+        // -------------------------------
         private static string SHA256Hex(string input)
         {
             using var sha = SHA256.Create();
