@@ -4,14 +4,14 @@ using System.Net.Http;
 using System;
 using System.IO; 
 using Google.Apis.Auth.OAuth2; 
-using Google.Apis.Auth.OAuth2.ServiceAccount; // Dodane dla ServiceAccountCredential
+using Google.Apis.Auth.OAuth2.ServiceAccount; // Wymagane do ServiceAccountCredential
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
         private const string BucketName = "ar-models-dla-klientow";
-        private readonly ServiceAccountCredential _signingCredential; // Używamy konkretnego typu
+        private readonly ServiceAccountCredential _signingCredential; 
 
         public GcsService()
         {
@@ -24,17 +24,17 @@ namespace ArWidgetApi.Services 
             }
             else
             {
+                // Uproszczone wczytywanie klucza z pliku
                 generalCredential = GoogleCredential.FromFile(keyPath);
             }
 
-            // KLUCZOWY KROK: JAWNE POBRANIE ServiceAccountCredential
-            // Rzutowanie na konkretny typ, który jest wymagany do podpisywania.
+            // KLUCZOWY KROK: Rzutowanie na ServiceAccountCredential musi pozostać,
+            // ponieważ jest to typ wewnętrzny wymagany do podpisu.
             _signingCredential = generalCredential.UnderlyingCredential as ServiceAccountCredential;
             
             if (_signingCredential == null)
             {
-                // To jest krytyczny błąd, jeśli używamy domyślnego klucza Cloud Run
-                throw new InvalidOperationException("Nie udało się uzyskać ServiceAccountCredential do podpisywania URLi. Upewnij się, że klucz JSON jest poprawnie zamontowany.");
+                throw new InvalidOperationException("Nie udało się uzyskać ServiceAccountCredential do podpisywania URLi. Sprawdź, czy konto serwisowe jest prawidłowo skonfigurowane.");
             }
         }
 
@@ -42,15 +42,14 @@ namespace ArWidgetApi.Services 
         {
             TimeSpan duration = TimeSpan.FromMinutes(5); 
             
-            // MUSIMY UŻYĆ METODY UrlSigner.Sign, KTÓRA PRZYJMUJE ServiceAccountCredential
-            // Sygnatura, która musi działać, to ta z pięcioma argumentami, 
-            // gdzie ostatni argument to ServiceAccountCredential (nie GoogleCredential)
+            // Używamy V2 Signed URL, jedynej sygnatury, która może zadziałać 
+            // z przekazaniem ServiceAccountCredential jako piątego argumentu.
             string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
                 BucketName,
                 objectName,
                 duration,
                 HttpMethod.Get,
-                _signingCredential // Przekazanie konkretnego typu ServiceAccountCredential
+                _signingCredential 
             );
             
             return signedUrl;
