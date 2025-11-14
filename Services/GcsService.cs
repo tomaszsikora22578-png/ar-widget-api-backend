@@ -60,32 +60,32 @@ namespace ArWidgetApi.Services 
         }
 
         // Metoda GenerateSignedUrl pozostaje bez zmian
-       public string GenerateSignedUrl(string objectName)
+public string GenerateSignedUrl(string objectName)
 {
     TimeSpan duration = TimeSpan.FromMinutes(5);
     
-    string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+    // Upewniamy się, że format daty jest poprawny (UTC)
+    string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); 
     string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
     // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
     string urlPath = $"/{BucketName}/{objectName}";
     
-    // Canonical Request - KRYTYCZNA POPRAWKA w formatowaniu Nagłówków
-    // 1. GET\n
-    // 2. /bucket/object\n
-    // 3. \n (Pusta linia dla Query String)
-    // 4. host:storage.googleapis.com\n
-    // 5. x-goog-date:YYYYMMDDTHHMMSSZ\n
-    // 6. \n (Pusta linia dla Payload Hash)
-    // 7. host;x-goog-date (Signed Headers)
+    // PRAWIDŁOWY FORMAT KANONICZNEGO ŻĄDANIA DLA GCS SIGNED URL:
+    // 1. HTTP_METHOD (GET)
+    // 2. URI (/bucket/object)
+    // 3. QUERY_STRING (pusta, bo parametry są w URL)
+    // 4. CANONICAL_HEADERS (host, x-goog-date)
+    // 5. SIGNED_HEADERS (host;x-goog-date)
+    // 6. PAYLOAD_HASH (pusty, bo GET)
     
-    string canonicalRequest = $"GET\n{urlPath}\n\n" +
-                              $"host:storage.googleapis.com\n" +
-                              $"x-goog-date:{timestamp}\n\n" + // To jest teraz linia nr 5 i 6 (nagłówek i pusta linia dla Payload Hash)
-                              $"host;x-goog-date"; // Linia nr 7 (Signed Headers)
+    // Kluczowa zmiana: Poprawne użycie \n dla separatorów
+    string canonicalRequest = $"GET\n{urlPath}\n\n" + // GET, URI, Query String (pusta)
+                              $"host:storage.googleapis.com\n" + // Nagłówek 1
+                              $"x-goog-date:{timestamp}\n\n" + // Nagłówek 2 + PUSTA LINIA (dla Payload Hash)
+                              $"host;x-goog-date"; // Signed Headers (BEZ KOŃCOWEGO \n!)
 
     // String To Sign
-    // Context Path w GCS dla Signed URLs jest po prostu /storage/goog4_request
     string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
 
     // --- 2. PODPISANIE ŁAŃCUCHA KLUCZEM PRYWATNYM ---
@@ -93,6 +93,7 @@ namespace ArWidgetApi.Services 
     using (var sha256 = SHA256.Create())
     {
         byte[] data = Encoding.UTF8.GetBytes(stringToSign);
+        // Używamy Pkcs1 dla zgodności z V4
         signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     }
 
