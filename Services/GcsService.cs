@@ -72,18 +72,16 @@ public string GenerateSignedUrl(string objectName)
     
     string signedHeadersList = "host;x-goog-date";
 
-    // Kanoniczne Nagłówki (Muszą być trylowane i w kolejności alfabetycznej)
-    string canonicalHeaders = string.Concat(
-        "host:storage.googleapis.com", "\n", 
-        "x-goog-date:", timestamp, "\n"
-    );
+    // Kanoniczne Nagłówki
+    // Zapewniamy, że wartości są małymi literami i są trylowane.
+    string hostValue = "storage.googleapis.com".Trim().ToLowerInvariant(); 
+    string dateValue = timestamp.Trim().ToLowerInvariant(); 
 
-    // Kanoniczne Żądanie (Canonical Request)
-    // Używamy StringBuilder, który jest najbardziej odporny na błędy
+    // Używamy StringBuilder do złożenia czystego Kanonicznego Żądania
     var sb = new StringBuilder();
     
     // 1. HTTP Method
-    sb.Append("GET\n");
+    sb.Append("GET").Append("\n");
     
     // 2. Canonical URI
     sb.Append(urlPath).Append("\n");
@@ -92,10 +90,10 @@ public string GenerateSignedUrl(string objectName)
     sb.Append("\n"); 
     
     // 4. Canonical Headers (host:value\nx-goog-date:value\n)
-    sb.Append(canonicalHeaders); 
+    sb.Append("host:").Append(hostValue).Append("\n"); // Host bez spacji
+    sb.Append("x-goog-date:").Append(dateValue).Append("\n"); // Data bez spacji
     
-    // 5. Hash of Payload (pusta linia, bo GET)
-    sb.Append("\n"); 
+    sb.Append("\n"); // 5. Payload Hash (pusta linia, bo GET)
     
     // 6. Signed Headers (host;x-goog-date)
     sb.Append(signedHeadersList); 
@@ -116,6 +114,7 @@ public string GenerateSignedUrl(string objectName)
     string hexSignature = BitConverter.ToString(signatureBytes).Replace("-", "").ToLowerInvariant();
 
     // --- 3. SKŁADANIE KOŃCOWEGO URLA ---
+    // Używamy oryginalnej, ale poprawnej konstrukcji URL
     string signedUrl = $"https://storage.googleapis.com{urlPath}" +
                         $"?X-Goog-Signature={hexSignature}" +
                         $"&X-Goog-Algorithm=GOOG4-RSA-SHA256" +
