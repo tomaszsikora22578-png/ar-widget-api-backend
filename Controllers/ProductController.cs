@@ -1,67 +1,78 @@
 using ArWidgetApi.Data;
-using ArWidgetApi;
+using ArWidgetApi.Services; // Dodaj using dla GcsService
+using ArWidgetApi.Models; // Dodaj using dla ModelDataDto
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq; // Potrzebne do Where, Select, Any
 
 namespace ArWidgetApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // Bazowa Ĺ›cieĹĽka: /api/product
+    [Route("api/product")] // Zmień na /api/product, jeśli ma być /api/product/models
     public class ProductController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly GcsService _gcsService; // Wstrzykujemy nasz nowy serwis GCS
 
-        // Konstruktor - wstrzykiwanie kontekstu bazy danych (Dependency Injection)
-        public ProductController(ApplicationDbContext context)
+        // Konstruktor z wstrzykiwaniem dwóch serwisów
+        public ProductController(ApplicationDbContext context, GcsService gcsService)
         {
             _context = context;
+            _gcsService = gcsService;
         }
 
         // Endpoint: GET /api/product/models
-        // Ta metoda zastÄ™puje Ĺ‚adowanie statycznego JSON z GitHub Pages
         [HttpGet("models")]
         public async Task<IActionResult> GetClientProducts()
         {
-            // 1. OdbiĂłr Tokenu Klienta z nagĹ‚Ăłwka (X-Client-Token)
+            // 1. OdbiĂłr Tokenu Klienta z nagĹ‚Ăłwka
             if (!Request.Headers.TryGetValue("X-Client-Token", out var clientTokenHeader))
             {
-                // Zabezpieczenie: JeĹ›li brakuje tokenu, odmawiamy dostÄ™pu
                 return Unauthorized(new { error = "Token klienta jest wymagany (X-Client-Token)." });
             }
             string clientToken = clientTokenHeader.ToString();
 
-            // 2. Weryfikacja Tokenu i Statusu Subskrypcji
-            // Wyszukujemy Klienta w naszej bazie
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(c => c.ClientToken == clientToken && c.SubscriptionStatus == "Active");
-
-            if (client == null)
-            {
-                // Zabezpieczenie: JeĹ›li token nie istnieje lub subskrypcja wygasĹ‚a
-                return Unauthorized(new { error = "NieprawidĹ‚owy token lub subskrypcja nieaktywna." });
-            }
-
-            // 3. Pobranie Modeli PowiÄ…zanych z Klientem
-            var products = await _context.Products
-                .Where(p => p.ClientId == client.Id)
-                .Select(p => new // Mapujemy na Anonimowy Obiekt, aby dane byĹ‚y zgodne z oczekiwaniem Front-endu
+            // 2. Weryfikacja Tokenu i POBRANIE AUTORYZOWANYCH MODELI (JOIN EF CORE)
+            // Używamy JOIN przez tabelę Client_Product_Access
+            var productsQuery = _context.Clients
+                .Where(c => c.ClientToken == clientToken && c.SubscriptionStatus == "Active")
+                .SelectMany(c => c.ClientProductAccess) // Zakładamy relację w DbContext
+                .Select(cpa => cpa.Product) // Pobieramy obiekty Product
+                .Select(p => new ModelDataDto // Mapujemy bezpośrednio na DTO
                 {
-                    productId = p.ProductSku, // WaĹĽne: Zgodne z kluczem w JS
-                    name = p.Name,
-                    description = p.Name, // MoĹĽesz dodaÄ‡ oddzielne pole 'description'
-                    glb = p.ModelUrlGlb,
-                    usdz = p.ModelUrlUsdz,
-                    alt_text = p.Name
-                })
-                .ToListAsync();
+                    Name = p.Name,
+                    ModelUrlGlb = p.ModelUrlGlb, // Ścieżki GCS z bazy
+                    ModelUrlUsdz = p.ModelUrlUsdz,
+                });
+                
+            var authorizedModels = await productsQuery.ToListAsync();
 
-            if (!products.Any())
+            if (!authorizedModels.Any())
             {
-                return NotFound(new { message = "Brak skonfigurowanych produktĂłw dla tego klienta." });
+                // To obejmuje brak klienta/subskrypcji lub brak przypisanych modeli
+                return NotFound(new { message = "Brak skonfigurowanych produktów dla tego klienta lub token jest nieprawidłowy." });
             }
 
-            // Zwracamy listÄ™ produktĂłw jako JSON do Front-endu
-            return Ok(products);
+            // 3. GENEROWANIE SIGNED URLS I CZYSZCZENIE ŚCIEŻEK
+            foreach (var model in authorizedModels)
+            {
+                // GLB (Android)
+                if (!string.IsNullOrEmpty(model.ModelUrlGlb))
+                {
+                    model.SignedUrlGlb = _gcsService.GenerateSignedUrl(model.ModelUrlGlb);
+                    model.ModelUrlGlb = null; // Czyszczenie
+                }
+
+                // USDZ (iOS)
+                if (!string.IsNullOrEmpty(model.ModelUrlUsdz))
+                {
+                    model.SignedUrlUsdz = _gcsService.GenerateSignedUrl(model.ModelUrlUsdz);
+                    model.ModelUrlUsdz = null; // Czyszczenie
+                }
+            }
+
+            // 4. Zwracamy listę produktów jako JSON (ModelDataDto)
+            return Ok(authorizedModels);
         }
     }
 }
