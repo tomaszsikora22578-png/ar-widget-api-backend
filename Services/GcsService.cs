@@ -2,48 +2,43 @@
 using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
-using Google.Apis.Auth.OAuth2; 
-using System.IO;
+// USUŃ: using Google.Apis.Auth.OAuth2; 
+using System.Threading.Tasks; 
+using System.IO; // Już niepotrzebne
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
-        private readonly StorageClient _storageClient; 
         private const string BucketName = "ar-models-dla-klientow"; 
+        
+        // ID konta serwisowego używanego do podpisywania
+        private readonly string _serviceAccountId; 
 
         public GcsService()
         {
-            // Pobranie ścieżki do klucza JSON z ZMIENNEJ ŚRODOWISKOWEJ
-            string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
-
-            // WAŻNE: Weryfikacja
-            if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
-            {
-                // W przypadku, gdy klucz nie jest dostępny (np. podczas kompilacji)
-                // Używamy bezpiecznej, ale mniej pewnej metody Create()
-                _storageClient = StorageClient.Create();
-            }
-            else
-            {
-                // TWORZYMY KLIENTA Z JAWNYM POŚWIADCZENIEM Z PLIKU JSON
-                var credential = GoogleCredential.FromFile(keyPath);
-                _storageClient = StorageClient.Create(credential);
-            }
+            // POBRANIE ID KONTA SERWISOWEGO CLOUD RUN
+            // W Cloud Run to jest standardowa zmienna środowiskowa,
+            // ale jeśli jest pusta, użyjemy domyślnej konwencji.
+            _serviceAccountId = Environment.GetEnvironmentVariable("K_SERVICE_ACCOUNT") 
+                                ?? "849496305543-compute@developer.gserviceaccount.com";
+            
+            // W CZASIE KOMPILACJI TA ZMIENNA BĘDZIE PUSTA,
+            // dlatego użyjemy tylko metody statycznej, która nie wymaga instancji.
         }
 
         public string GenerateSignedUrl(string objectName)
         {
-            var expiration = DateTime.UtcNow.AddMinutes(5); 
+            TimeSpan duration = TimeSpan.FromMinutes(5); 
 
-            // Używamy metody instancyjnej CreateSignedUrl, KTÓRA ISTNIEJE.
-            // Błąd CS1061 był wcześniej wynikiem błędnego użycia metody statycznej
-            // zamiast instancyjnej i na odwrót. Ta musi zadziałać.
-            string signedUrl = _storageClient.CreateSignedUrl(
+            // UŻYCIE STATYCZNEJ METODY UrlSigner.Sign z JAWNYM ID KONTA SERWISOWEGO
+            // To jest metoda, która ma mniej przeciążeń i działa stabilniej.
+            string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
                 BucketName,
                 objectName,
-                expiration,
-                HttpMethod.Get
+                duration,
+                HttpMethod.Get,
+                _serviceAccountId // Przekazujemy ID konta serwisowego
             );
             
             return signedUrl;
