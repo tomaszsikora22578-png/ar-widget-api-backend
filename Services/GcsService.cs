@@ -2,71 +2,66 @@
 using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
-using System.Threading.Tasks; 
 using System.IO; 
-using Google.Apis.Auth.OAuth2; // ZWRÓCONY! Wymagany do wczytania klucza
-using Google.Apis.Auth.OAuth2.Responses; // Dodatkowe (na wszelki wypadek)
+using Google.Apis.Auth.OAuth2; // Zostawiamy
+using Google.Cloud.Storage.V1.Signing; // Dodajemy to ZNOWU, bo musimy wymusić, że jest
+using Google.Apis.Auth.OAuth2.ServiceAccount; // Dodajemy to
+using Google.Cloud.Storage.V1.Implementation; // Dodajemy to
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
         private const string BucketName = "ar-models-dla-klientow";
-        private readonly string _serviceAccountId; 
-        private readonly string _privateKey; // Będziemy trzymać klucz prywatny
+        private readonly ServiceAccountCredential.Initializer _credentialInitializer;
+        private readonly string _serviceAccountId;
 
         public GcsService()
         {
-            // POBRANIE ŚCIEŻKI DO KLUCZA JSON Z Cloud Run (np. /etc/secrets/gcs_key.json)
+            // POBRANIE ŚCIEŻKI DO KLUCZA JSON Z Cloud Run
             string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
-
-            if (string.IsNullOrEmpty(keyPath))
+            
+            if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
             {
-                // Fallback dla lokalnego developmentu lub kompilacji
-                _serviceAccountId = "849496305543-compute@developer.gserviceaccount.com";
-                _privateKey = ""; // Klucz będzie pusty, jeśli nie ma pliku
+                // W przypadku, gdy plik nie jest dostępny, używamy domyślnego klucza
+                throw new InvalidOperationException("Klucz prywatny GCS nie został poprawnie zamontowany w Cloud Run. Wymagany plik JSON: /etc/secrets/gcs_key.json.");
             }
-            else
-            {
-                // Wczytanie klucza z pliku JSON
-                string json = File.ReadAllText(keyPath);
-                var token = Newtonsoft.Json.JsonConvert.DeserializeObject<TokenResponse>(json);
-                
-                // Używamy ServiceAccountCredential, aby wyciągnąć klucz i ID
-                var credential = GoogleCredential.FromFile(keyPath).UnderlyingCredential as ServiceAccountCredential;
-
-                if (credential == null)
-                {
-                    throw new InvalidOperationException("Nie udało się załadować ServiceAccountCredential. Sprawdź plik JSON i uprawnienia.");
-                }
-                
-                _serviceAccountId = credential.Id; // Automatycznie pobiera ID
-                _privateKey = credential.PrivateKey; // Automatycznie pobiera klucz
-            }
+            
+            // 1. ODCZYT I INICJALIZACJA Z PLIKU
+            var json = File.ReadAllText(keyPath);
+            _credentialInitializer = ServiceAccountCredential.FromServiceAccountData(json).CreateInitializer();
+            
+            // 2. POBRANIE ID KONTA SERWISOWEGO
+            _serviceAccountId = _credentialInitializer.User;
         }
 
         public string GenerateSignedUrl(string objectName)
         {
             TimeSpan duration = TimeSpan.FromMinutes(5); 
 
-            if (string.IsNullOrEmpty(_privateKey))
-            {
-                // Wersja bez podpisu, jeśli klucz nie został załadowany (np. w kompilacji)
-                // W Cloud Run to powinno się ZAWSZE nie wydarzyć.
-                return $"https://storage.googleapis.com/{BucketName}/{objectName}";
-            }
+            // 3. TWORZENIE PODPISU ZA POMOCĄ INICJALIZATORA
+            // Używamy metody, która przyjmuje ServiceAccountCredential i duration.
+            
+            // Najpierw tworzymy instancję StorageClient z klucza,
+            // ponieważ CreateSignedUrl istnieje tylko na instancji
+            var credential = new ServiceAccountCredential(_credentialInitializer);
+            var client = StorageClient.Create(credential);
 
-            // UŻYCIE NAJBARDZIEJ STABILNEJ, STATYCZNEJ METODY CreateV4SignedUrl
-            // Sygnatura metody: bucketName, objectName, duration, method, serviceAccountEmail, privateKey
-            string signedUrl = Google.Cloud.Storage.V1.UrlSigner.CreateV4SignedUrl(
+            // UŻYCIE INSTANCYJNEJ METODY, która jest w najnowszych bibliotekach
+            string signedUrl = client.CreateSignedUrl(
                 BucketName,
                 objectName,
-                duration,
+                DateTime.UtcNow.Add(duration), // Musi być DateTime, nie TimeSpan
                 HttpMethod.Get,
-                _serviceAccountId, // Argument 5 (string - Service Account ID)
-                _privateKey        // Argument 6 (string - Private Key)
-            );
-            
+                new CreateSignedUrlOptions() 
+                {
+                    // Ustawienie wersji V4
+                    SigningVersion = SigningVersion.V4,
+                    // Wymagany Service Account ID
+                    // Krok ten często jest pomijany, ale jest kluczowy w Cloud Run
+                    ServiceAccountEmail = _serviceAccountId 
+                });
+
             return signedUrl;
         }
     }
