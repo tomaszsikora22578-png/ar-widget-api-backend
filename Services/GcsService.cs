@@ -1,66 +1,77 @@
-// GcsService.cs
 using System.Net.Http;
 using System;
 using System.IO; 
 using System.Text;
-using System.Security.Cryptography; // KLUCZOWE: Wymagane do podpisu RSA
-using Google.Apis.Auth.OAuth2; 
-using Google.Apis.Auth.OAuth2.ServiceAccount; // Wymagane dla ServiceAccountCredential
-using Newtonsoft.Json; // Wymagane do odczytu klucza JSON
+using System.Security.Cryptography; 
+// USUNIĘTO: using Google.Apis.Auth.OAuth2; // To było problematyczne
+// USUNIĘTO: using Google.Apis.Auth.OAuth2.ServiceAccount; // TO CAŁY CZAS BLOKOWAŁO KOMPILACJĘ
+using Newtonsoft.Json; 
 
 namespace ArWidgetApi.Services 
 {
+    // Klasa pomocnicza do deserializacji klucza JSON
+    private class ServiceAccountKey
+    {
+        [JsonProperty("private_key_id")]
+        public string PrivateKeyId { get; set; }
+        
+        [JsonProperty("private_key")]
+        public string PrivateKey { get; set; }
+        
+        [JsonProperty("client_email")]
+        public string ClientEmail { get; set; }
+    }
+
     public class GcsService
     {
         private const string BucketName = "ar-models-dla-klientow";
         private readonly string _serviceAccountEmail;
-        private readonly RSA _rsaSigner; // Obiekt do podpisu
+        private readonly RSA _rsaSigner; 
 
         public GcsService()
         {
-            // --- 1. ŁADOWANIE KLUCZA PRYWATNEGO I ID Z PLIKU JSON ---
+            // --- 1. RĘCZNE ŁADOWANIE KLUCZA PRYWATNEGO I ID Z PLIKU JSON ---
             string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
             
             if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
             {
-                throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany. Sprawdź, czy GCS_PRIVATE_KEY_PATH jest ustawiony na ścieżkę pliku JSON.");
+                throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany.");
             }
             
             var json = File.ReadAllText(keyPath);
             
-            // Używamy narzędzi Google tylko do ekstrakcji klucza i ID z JSON
-            var credentialInitializer = ServiceAccountCredential.FromServiceAccountData(json).CreateInitializer();
+            // UŻYCIE Newtonsoft.Json do ręcznego wczytania danych
+            var keyData = JsonConvert.DeserializeObject<ServiceAccountKey>(json);
             
-            _serviceAccountEmail = credentialInitializer.User;
+            _serviceAccountEmail = keyData.ClientEmail;
             
-            // --- 2. KONWERSJA KLUCZA PEM NA OBIEKT .NET RSA ---
-            var keyInPemFormat = credentialInitializer.Key;
+            // --- 2. KONWERSJA KLUCZA PEM NA OBIEKT .NET RSA (NIEZMIENIONE) ---
+            var keyInPemFormat = keyData.PrivateKey; // Klucz jest już w formacie PEM
             
             _rsaSigner = RSA.Create();
             try
             {
+                // Załaduj klucz prywatny z formatu PEM (jest on w polu "private_key" JSON)
                 _rsaSigner.ImportFromPem(keyInPemFormat);
             }
             catch (Exception ex)
             {
-                // Błąd wczytywania klucza (np. nieprawidłowy format PEM)
                 throw new InvalidOperationException($"Błąd ładowania klucza RSA: {ex.Message}");
             }
         }
 
+        // Metoda GenerateSignedUrl pozostaje bez zmian (korzysta z _rsaSigner i _serviceAccountEmail)
         public string GenerateSignedUrl(string objectName)
         {
             TimeSpan duration = TimeSpan.FromMinutes(5);
-            DateTime expiryTime = DateTime.UtcNow.Add(duration);
             
-            // Format daty dla nagłówków i podpisu
             string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
             string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
             // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
             string urlPath = $"/{BucketName}/{objectName}";
             
-            // Canonical Request (muszą być puste linie)
+            // Canonical Request
             string canonicalRequest = $"GET\n{urlPath}\n\n\nhost:storage.googleapis.com\nx-goog-date:{timestamp}\n\nhost;x-goog-date\n";
             
             // String To Sign
@@ -71,12 +82,9 @@ namespace ArWidgetApi.Services 
             using (var sha256 = SHA256.Create())
             {
                 byte[] data = Encoding.UTF8.GetBytes(stringToSign);
-                // Podpisanie danych za pomocą obiektu RSA (używa klucza prywatnego)
                 signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             }
 
-            string base64Signature = Convert.ToBase64String(signatureBytes);
-            // Konwersja na Base64 i kodowanie URL
             string hexSignature = BitConverter.ToString(signatureBytes).Replace("-", "").ToLowerInvariant();
 
             // --- 3. SKŁADANIE KOŃCOWEGO URLA ---
