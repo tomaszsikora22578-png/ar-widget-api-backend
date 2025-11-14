@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -40,44 +39,65 @@ namespace ArWidgetApi.Services
 
         public string GenerateSignedUrl(string objectName)
         {
+            // expiration
             TimeSpan expires = TimeSpan.FromMinutes(5);
 
+            // request basics
             string method = "GET";
             string host = "storage.googleapis.com";
 
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
-            string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
+            // timestamps - IMPORTANT: do not change case/format after this point
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); // e.g. 20251114T150000Z
+            string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");       // e.g. 20251114
 
-            string region = "auto"; // GCS tego i tak ignoruje, ale musi być w standardzie
+            string region = "auto";
             string credentialScope = $"{dateStamp}/{region}/storage/goog4_request";
 
             string canonicalUri = $"/{BucketName}/{objectName}";
-            string canonicalQueryString = "";
 
-            // ------------------------
-            // CANONICAL HEADERS
-            // ------------------------
+            // canonical headers (names must be lowercase)
             string canonicalHeaders =
                 $"host:{host}\n" +
                 $"x-goog-date:{timestamp}\n";
 
+            // signed headers list (lowercase, semicolon separated)
             string signedHeaders = "host;x-goog-date";
 
             // ------------------------
-            // CANONICAL REQUEST
+            // canonical query string (must be included in canonical request, keys sorted)
             // ------------------------
+            // We url-encode credential value (email/credentialScope) using EscapeDataString
+            string credentialValueEscaped = Uri.EscapeDataString(_serviceAccountEmail + "/" + credentialScope);
+
+            // Note: X-Goog-SignedHeaders in canonical query string must be the literal "host;x-goog-date"
+            // and its value must NOT be additionally escaped beyond what Uri.EscapeDataString does for other fields.
+            // For safety, we'll include signedHeaders unescaped in canonicalQueryString, but when composing final URL
+            // we'll use Uri.EscapeDataString for the parameter values where appropriate.
+            string canonicalQueryString =
+                $"X-Goog-Algorithm=GOOG4-RSA-SHA256" +
+                $"&X-Goog-Credential={credentialValueEscaped}" +
+                $"&X-Goog-Date={timestamp}" +
+                $"&X-Goog-Expires={(int)expires.TotalSeconds}" +
+                $"&X-Goog-SignedHeaders={signedHeaders}";
+
+            // ------------------------
+            // canonical request
+            // ------------------------
+            // payload hash for GET is SHA256 of empty string
+            string payloadHash = SHA256Hex("");
+
             string canonicalRequest =
                 $"{method}\n" +
                 $"{canonicalUri}\n" +
                 $"{canonicalQueryString}\n" +
                 $"{canonicalHeaders}\n" +
                 $"{signedHeaders}\n" +
-                $"{SHA256Hex("")}";   // empty payload for GET
+                $"{payloadHash}";
 
             string canonicalRequestHash = SHA256Hex(canonicalRequest);
 
             // ------------------------
-            // STRING TO SIGN
+            // string to sign
             // ------------------------
             string stringToSign =
                 "GOOG4-RSA-SHA256\n" +
@@ -86,7 +106,7 @@ namespace ArWidgetApi.Services
                 $"{canonicalRequestHash}";
 
             // ------------------------
-            // SIGNATURE
+            // signature (sign stringToSign using RSA private key, SHA256, PKCS#1 v1.5)
             // ------------------------
             byte[] signatureBytes = _rsa.SignData(
                 Encoding.UTF8.GetBytes(stringToSign),
@@ -100,15 +120,12 @@ namespace ArWidgetApi.Services
                 .ToLowerInvariant();
 
             // ------------------------
-            // FINAL SIGNED URL
+            // final URL: canonicalQueryString (already contains all except signature) + signature param
+            // make sure to escape signed headers in final URL
             // ------------------------
             string finalUrl =
-                $"https://{host}{canonicalUri}" +
-                $"?X-Goog-Algorithm=GOOG4-RSA-SHA256" +
-                $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail) }%2F{credentialScope}" +
-                $"&X-Goog-Date={timestamp}" +
-                $"&X-Goog-Expires={(int)expires.TotalSeconds}" +
-                $"&X-Goog-SignedHeaders={Uri.EscapeDataString(signedHeaders)}" +
+                $"https://{host}{canonicalUri}?" +
+                canonicalQueryString +
                 $"&X-Goog-Signature={signatureHex}";
 
             return finalUrl;
