@@ -28,10 +28,10 @@ namespace ArWidgetApi.Services
                 throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany.");
 
             var json = File.ReadAllText(keyPath);
-            var keyData = JsonConvert.DeserializeObject<ServiceAccountKey>(json);
+            var keyData = JsonConvert.DeserializeObject<ServiceAccountKey>(json)
+                          ?? throw new InvalidOperationException("Nie udało się wczytać danych klucza GCS.");
 
-            _serviceAccountEmail = keyData.ClientEmail;
-
+            _serviceAccountEmail = keyData.ClientEmail ?? throw new InvalidOperationException("Brak client_email w pliku klucza.");
             _rsa = RSA.Create();
             _rsa.ImportFromPem(keyData.PrivateKey);
         }
@@ -39,7 +39,7 @@ namespace ArWidgetApi.Services
         // *****************************************************
         // GET - pobieranie pliku
         // *****************************************************
-        public string GenerateSignedUrlGet(string objectName, int expiresSeconds = 300)
+        public string GenerateSignedUrl(string objectName, int expiresSeconds = 300)
         {
             string method = "GET";
             string host = "storage.googleapis.com";
