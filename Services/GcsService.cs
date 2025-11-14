@@ -17,7 +17,7 @@ namespace ArWidgetApi.Services
             public string ClientEmail { get; set; }
         }
 
-        private readonly string _bucketName = "ar-models-dla-klientow";
+        private const string BucketName = "ar-models-dla-klientow";
         private readonly string _serviceAccountEmail;
         private readonly RSA _rsa;
 
@@ -36,50 +36,48 @@ namespace ArWidgetApi.Services
             _rsa.ImportFromPem(keyData.PrivateKey);
         }
 
-        public string GenerateSignedUrl(string objectName, int expiresMinutes = 5)
+        // *****************************************************
+        // GET - pobieranie pliku
+        // *****************************************************
+        public string GenerateSignedUrlGet(string objectName, int expiresSeconds = 300)
         {
-            // request basics
+            string method = "GET";
             string host = "storage.googleapis.com";
-            string httpMethod = "GET";
 
-            // timestamps
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
             string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
-            // credential scope
             string region = "auto";
             string credentialScope = $"{dateStamp}/{region}/storage/goog4_request";
 
-            // canonical URI
-            string canonicalUri = $"/{_bucketName}/{objectName}";
+            string canonicalUri = $"/{BucketName}/{objectName}";
 
-            // canonical headers (only host!)
+            // canonical headers i signed headers
             string canonicalHeaders = $"host:{host}\n";
-
-            // signed headers (only host!)
             string signedHeaders = "host";
 
-            // URL params (canonical query string)
-            string credential = Uri.EscapeDataString($"{_serviceAccountEmail}/{credentialScope}");
-
-            string canonicalQueryString =
-                $"X-Goog-Algorithm=GOOG4-RSA-SHA256" +
-                $"&X-Goog-Credential={credential}" +
-                $"&X-Goog-Date={timestamp}" +
-                $"&X-Goog-Expires={expiresMinutes * 60}" +
-                $"&X-Goog-SignedHeaders={signedHeaders}";
-
-            // payload hash for GET
-            string payloadHash = SHA256Hex("");
+            // -------------------------------
+            // CanonicalQueryString (alfabetycznie posortowane)
+            // -------------------------------
+            string[] queryParams =
+            {
+                $"X-Goog-Algorithm=GOOG4-RSA-SHA256",
+                $"X-Goog-Credential={_serviceAccountEmail}/{credentialScope}",
+                $"X-Goog-Date={timestamp}",
+                $"X-Goog-Expires={expiresSeconds}",
+                $"X-Goog-SignedHeaders={signedHeaders}"
+            };
+            Array.Sort(queryParams, StringComparer.Ordinal);
+            string canonicalQueryString = string.Join("&", queryParams);
 
             // canonical request
             string canonicalRequest =
-                $"{httpMethod}\n" +
+                $"{method}\n" +
                 $"{canonicalUri}\n" +
                 $"{canonicalQueryString}\n" +
                 $"{canonicalHeaders}\n" +
                 $"{signedHeaders}\n" +
-                $"{payloadHash}";
+                $"UNSIGNED-PAYLOAD";
 
             string canonicalRequestHash = SHA256Hex(canonicalRequest);
 
@@ -90,34 +88,38 @@ namespace ArWidgetApi.Services
                 $"{credentialScope}\n" +
                 $"{canonicalRequestHash}";
 
-            // sign
-            byte[] signatureBytes = _rsa.SignData(
+            // podpis RSA
+            byte[] signature = _rsa.SignData(
                 Encoding.UTF8.GetBytes(stringToSign),
                 HashAlgorithmName.SHA256,
                 RSASignaturePadding.Pkcs1);
 
-            string signatureHex = BitConverter.ToString(signatureBytes)
-                .Replace("-", "")
-                .ToLowerInvariant();
+            string signatureHex = BitConverter.ToString(signature).Replace("-", "").ToLowerInvariant();
 
-            // final URL
-            string finalUrl =
-                $"https://{host}{canonicalUri}?" +
-                $"{canonicalQueryString}" +
-                $"&X-Goog-Signature={signatureHex}";
+            // final URL - escape tylko wartości
+            string[] urlParams =
+            {
+                $"X-Goog-Algorithm=GOOG4-RSA-SHA256",
+                $"X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail + "/" + credentialScope)}",
+                $"X-Goog-Date={timestamp}",
+                $"X-Goog-Expires={expiresSeconds}",
+                $"X-Goog-SignedHeaders={signedHeaders}"
+            };
+            string finalUrlQuery = string.Join("&", urlParams);
 
-            return finalUrl;
+            return $"https://{host}{canonicalUri}?{finalUrlQuery}&X-Goog-Signature={signatureHex}";
         }
 
+        // *****************************************************
+        // SHA256 Hex helper
+        // *****************************************************
         private static string SHA256Hex(string input)
         {
-            using var sha256 = SHA256.Create();
-            byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-
+            using var sha = SHA256.Create();
+            byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
             var sb = new StringBuilder();
             foreach (byte b in hash)
                 sb.Append(b.ToString("x2"));
-
             return sb.ToString();
         }
     }
