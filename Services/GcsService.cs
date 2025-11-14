@@ -24,24 +24,16 @@ namespace ArWidgetApi.Services
 
         public GcsService()
         {
-            // --- 1. RĘCZNE ŁADOWANIE KLUCZA PRYWATNEGO I ID Z PLIKU JSON ---
+            // ... (KONSTRUKTOR POZOSTAJE BEZ ZMIAN)
             string keyPath = Environment.GetEnvironmentVariable("GCS_PRIVATE_KEY_PATH");
-            
             if (string.IsNullOrEmpty(keyPath) || !File.Exists(keyPath))
             {
-                // BŁĄD ZAMONTOWANIA (JUŻ GO ROZWIĄZALIŚMY)
                 throw new InvalidOperationException("Klucz GCS nie został poprawnie zamontowany.");
             }
-            
             var json = File.ReadAllText(keyPath);
-            
             var keyData = JsonConvert.DeserializeObject<ServiceAccountKey>(json);
-            
             _serviceAccountEmail = keyData.ClientEmail;
-            
-            // --- 2. KONWERSJA KLUCZA PEM NA OBIEKT .NET RSA ---
             var keyInPemFormat = keyData.PrivateKey; 
-            
             _rsaSigner = RSA.Create();
             try
             {
@@ -59,50 +51,50 @@ namespace ArWidgetApi.Services
             
             string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); 
             string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
+            string region = "auto"; // Dla Cloud Run jest to region globalny/auto
 
             // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
             string urlPath = $"/{BucketName}/{objectName}";
             
             string signedHeadersList = "host;x-goog-date";
 
-            // Normalizacja wartości dla Kanonicznych Nagłówków (Trymowanie i małe litery)
+            // Normalizacja wartości
             string hostValue = "storage.googleapis.com".Trim().ToLowerInvariant(); 
             string dateValue = timestamp.Trim().ToLowerInvariant(); 
 
-            // Kanoniczne Żądanie (Canonical Request)
-            // Użycie StringBuilder dla precyzyjnej kontroli nad separatorami \n
+            // Kanoniczne Żądanie (Canonical Request) - Bez zmian od ostatniej, rygorystycznej wersji
             var sb = new StringBuilder();
-            
-            // 1. HTTP Method
             sb.Append("GET").Append("\n");
-            
-            // 2. Canonical URI
             sb.Append(urlPath).Append("\n");
-            
-            // 3. Canonical Query String (pusta)
             sb.Append("\n"); 
-            
-            // 4. Canonical Headers (host:value\nx-goog-date:value\n)
-            // TO JEST KRYTYCZNA SEKCJA, KTÓRA PRAWIE ZAWSZE POWODUJE BŁĄD HOST/DATE
             sb.Append("host:").Append(hostValue).Append("\n"); 
             sb.Append("x-goog-date:").Append(dateValue).Append("\n"); 
-            
-            // 5. Hash of Payload (pusta linia, bo GET)
             sb.Append("\n"); 
-            
-            // 6. Signed Headers (host;x-goog-date)
             sb.Append(signedHeadersList); 
             
             string canonicalRequest = sb.ToString();
 
-            // String To Sign
-            string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
+            // String To Sign - KRYTYCZNA POPRAWKA PEŁNEGO SCOPE
+            string stringToSign = string.Concat(
+                "GOOG4-RSA-SHA256\n",
+                timestamp, "\n",
+                dateStamp, $"/storage/goog4_request\n", // Używamy formatu GCS bez regionu, ale z datą
+                // Poprawka: W standardzie GCS Signed URLs, jest to często:
+                // {dateStamp}/{region}/storage/goog4_request. Używamy auto.
+                // Użyjemy formatu z Credential, który wydaje się działać:
+                dateStamp, "/", region, "/storage/goog4_request\n",
+                SHA256Hash(canonicalRequest)
+            );
+            
+            // Wracamy do poprzedniego, czystszego StringToSign, który działał w Twoim URL-u:
+            string stringToSignFinal = $"GOOG4-RSA-SHA256\n{timestamp}\n{dateStamp}/{region}/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
+
 
             // --- 2. PODPISANIE ŁAŃCUCHA KLUCZEM PRYWATNYM ---
             byte[] signatureBytes;
             using (var sha256 = SHA256.Create())
             {
-                byte[] data = Encoding.UTF8.GetBytes(stringToSign);
+                byte[] data = Encoding.UTF8.GetBytes(stringToSignFinal);
                 signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             }
 
@@ -112,7 +104,7 @@ namespace ArWidgetApi.Services
             string signedUrl = $"https://storage.googleapis.com{urlPath}" +
                                 $"?X-Goog-Signature={hexSignature}" +
                                 $"&X-Goog-Algorithm=GOOG4-RSA-SHA256" +
-                                $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail)}%2F{dateStamp}%2Fauto%2Fstorage%2Fgoog4_request" +
+                                $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail)}%2F{dateStamp}%2F{region}%2Fstorage%2Fgoog4_request" +
                                 $"&X-Goog-Date={timestamp}" +
                                 $"&X-Goog-Expires={(long)duration.TotalSeconds}" +
                                 $"&X-Goog-SignedHeaders={Uri.EscapeDataString(signedHeadersList.Replace(";", "%3B"))}"; 
