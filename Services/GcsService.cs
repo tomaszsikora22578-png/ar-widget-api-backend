@@ -1,39 +1,37 @@
-// GcsService.cs
 using Google.Cloud.Storage.V1; 
 using System.Net.Http;
 using System;
-using Google.Apis.Auth.OAuth2; // To jest potrzebne dla GoogleCredential
-using Google.Cloud.Storage.V1.Signing; // Ta linijka jest KLUCZOWA (i problematyczna)
+using Google.Apis.Auth.OAuth2;
 
 namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
-        private readonly UrlSigner _urlSigner; // Zmieniamy z powrotem na UrlSigner
+        private readonly GoogleCredential _credential; 
         private const string BucketName = "ar-models-dla-klientow"; 
 
         public GcsService()
         {
-            // GoogleCredential.GetApplicationDefault() jest asynchroniczne,
-            // ale działa synchronicznie w Cloud Run do pobrania poświadczeń.
-            var credential = GoogleCredential.GetApplicationDefault();
-            
-            // To jest instancja, która prawidłowo obsługuje podpisywanie w Cloud Run
-            _urlSigner = UrlSigner.FromCredential(credential); 
+            // To powinno być dostępne, ponieważ to podstawowa metoda autoryzacji
+            _credential = GoogleCredential.GetApplicationDefault();
         }
 
         public string GenerateSignedUrl(string objectName)
         {
-            var expiration = DateTimeOffset.UtcNow.AddMinutes(5); 
+            var expiration = DateTime.UtcNow.AddMinutes(5); 
 
-            // Używamy metody instancyjnej Sign z UrlSigner
-            string signedUrl = _urlSigner.Sign(
+            // Używamy metody statycznej CreateV4SignedUrl.
+            // W Cloud Run, to najczęściej wymaga przekazania ID konta serwisowego
+            // lub użycia dedykowanego klucza. Zaczniemy od użycia poświadczeń.
+
+            string signedUrl = Google.Cloud.Storage.V1.UrlSigner.CreateV4SignedUrl(
                 bucketName: BucketName,
                 objectName: objectName,
-                expiration: expiration,
-                method: HttpMethod.Get
+                duration: TimeSpan.FromMinutes(5), // Długość ważności
+                method: HttpMethod.Get,
+                credential: _credential // Używamy naszego poświadczenia
             );
-            
+
             return signedUrl;
         }
     }
