@@ -64,31 +64,30 @@ public string GenerateSignedUrl(string objectName)
 {
     TimeSpan duration = TimeSpan.FromMinutes(5);
     
-    // Upewniamy się, że format daty jest poprawny
     string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); 
     string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
     // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
     string urlPath = $"/{BucketName}/{objectName}";
     
-    // Kluczowe elementy do poprawnego podpisu:
-    string hostHeader = "host:storage.googleapis.com\n";
-    string dateHeader = $"x-goog-date:{timestamp}\n";
     string signedHeadersList = "host;x-goog-date";
 
-    // 
     // Kanoniczne Żądanie (Canonical Request)
-    //
-    string canonicalRequest = string.Concat(
-        "GET\n", 
-        urlPath, "\n",    // URI + \n
-        "\n",              // Query String (pusta) + \n
-        hostHeader,        // host:storage.googleapis.com\n
-        dateHeader,        // x-goog-date:...\n
-        "\n",              // Payload Hash (pusta linia) + \n
-        signedHeadersList  // host;x-goog-date (BEZ KOŃCOWEGO \n!)
-    );
+    // Używamy StringBuilder, co jest często bardziej niezawodne niż string.Concat
+    var sb = new StringBuilder();
+    sb.Append("GET\n");
+    sb.Append(urlPath).Append("\n");
+    sb.Append("\n"); // Query String (pusta)
     
+    // KRYTYCZNA SEKCJA: Nagłówki Kanoniczne muszą być trylowane i w kolejności alfabetycznej
+    sb.Append("host:storage.googleapis.com").Append("\n"); // Nagłówek hosta
+    sb.Append("x-goog-date:").Append(timestamp).Append("\n"); // Nagłówek daty
+    
+    sb.Append("\n"); // Pusta linia dla Payload Hash
+    sb.Append(signedHeadersList); // Lista Podpisanych Nagłówków (BEZ KOŃCOWEGO \n!)
+    
+    string canonicalRequest = sb.ToString();
+
     // String To Sign
     string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
 
@@ -113,7 +112,6 @@ public string GenerateSignedUrl(string objectName)
                         
     return signedUrl;
 }
-        
         // Funkcja pomocnicza do hashowania SHA256 (Hash of the Canonical Request)
         private string SHA256Hash(string input)
         {
