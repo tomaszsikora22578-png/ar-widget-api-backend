@@ -8,7 +8,6 @@
 
   <ItemGroup>
 <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-<PackageReference Include="Google.Apis.Auth.PlatformServices" Version="1.67.0" />
     <PackageReference Include="Google.Cloud.Storage.V1" Version="4.8.0" /> 
     <PackageReference Include="Google.Apis.Auth" Version="1.67.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
