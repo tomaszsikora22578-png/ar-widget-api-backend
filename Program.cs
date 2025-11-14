@@ -1,6 +1,7 @@
 using ArWidgetApi.Data;
 using ArWidgetApi.Middleware;
 using Microsoft.EntityFrameworkCore;
+using ArWidgetApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,8 +34,6 @@ builder.Services.AddCors(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 // Rejestracja serwisów
-builder.Services.AddSingleton<DataAccessService>(sp => 
-    new DataAccessService(connectionString)); // Rejestracja z connection string
 builder.Services.AddSingleton<GcsService>(); // GcsService nie potrzebuje argumentów (używa poświadczeń Cloud Run)
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
