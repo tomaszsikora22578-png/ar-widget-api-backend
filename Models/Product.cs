@@ -16,5 +16,8 @@ namespace ArWidgetApi.Models
 
         public int ClientId { get; set; } // FK
         public Client Client { get; set; }
+        // NOWA Właściwość nawigacyjna:
+     // Produkt jest dostępny dla wielu wpisów w tabeli Client_Product_Access
+       public ICollection<ClientProductAccess> ClientProductAccess { get; set; }
     }
 }
