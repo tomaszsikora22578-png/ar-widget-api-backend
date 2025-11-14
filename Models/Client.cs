@@ -6,6 +6,6 @@ namespace ArWidgetApi.Models
         public string ClientToken { get; set; } // KLUCZ - uzywany przez JS
         public string Name { get; set; }
         public string SubscriptionStatus { get; set; } = "Active"; // W przyszlosci: Active/Expired
-        public ICollection<Product> Products { get; set; } // Relacja 1 do wielu
+        public ICollection<ClientProductAccess> ClientProductAccess { get; set; }
     }
 }
