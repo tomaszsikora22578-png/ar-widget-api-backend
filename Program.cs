@@ -32,6 +32,10 @@ builder.Services.AddCors(options =>
 // 🔹 Konfiguracja połączenia z bazą
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
+// Rejestracja serwisów
+builder.Services.AddSingleton<DataAccessService>(sp => 
+    new DataAccessService(connectionString)); // Rejestracja z connection string
+builder.Services.AddSingleton<GcsService>(); // GcsService nie potrzebuje argumentów (używa poświadczeń Cloud Run)
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
 if (isCloudRun)
