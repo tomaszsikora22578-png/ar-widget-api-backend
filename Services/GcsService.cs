@@ -72,19 +72,33 @@ public string GenerateSignedUrl(string objectName)
     
     string signedHeadersList = "host;x-goog-date";
 
+    // Kanoniczne Nagłówki (Muszą być trylowane i w kolejności alfabetycznej)
+    string canonicalHeaders = string.Concat(
+        "host:storage.googleapis.com", "\n", 
+        "x-goog-date:", timestamp, "\n"
+    );
+
     // Kanoniczne Żądanie (Canonical Request)
-    // Używamy StringBuilder, co jest często bardziej niezawodne niż string.Concat
+    // Używamy StringBuilder, który jest najbardziej odporny na błędy
     var sb = new StringBuilder();
+    
+    // 1. HTTP Method
     sb.Append("GET\n");
+    
+    // 2. Canonical URI
     sb.Append(urlPath).Append("\n");
-    sb.Append("\n"); // Query String (pusta)
     
-    // KRYTYCZNA SEKCJA: Nagłówki Kanoniczne muszą być trylowane i w kolejności alfabetycznej
-    sb.Append("host:storage.googleapis.com").Append("\n"); // Nagłówek hosta
-    sb.Append("x-goog-date:").Append(timestamp).Append("\n"); // Nagłówek daty
+    // 3. Canonical Query String (pusta)
+    sb.Append("\n"); 
     
-    sb.Append("\n"); // Pusta linia dla Payload Hash
-    sb.Append(signedHeadersList); // Lista Podpisanych Nagłówków (BEZ KOŃCOWEGO \n!)
+    // 4. Canonical Headers (host:value\nx-goog-date:value\n)
+    sb.Append(canonicalHeaders); 
+    
+    // 5. Hash of Payload (pusta linia, bo GET)
+    sb.Append("\n"); 
+    
+    // 6. Signed Headers (host;x-goog-date)
+    sb.Append(signedHeadersList); 
     
     string canonicalRequest = sb.ToString();
 
