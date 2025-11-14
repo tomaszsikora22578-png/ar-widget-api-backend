@@ -17,8 +17,7 @@ namespace ArWidgetApi.Services
             public string ClientEmail { get; set; }
         }
 
-        private const string BucketName = "ar-models-dla-klientow";
-
+        private readonly string _bucketName = "ar-models-dla-klientow";
         private readonly string _serviceAccountEmail;
         private readonly RSA _rsa;
 
@@ -37,57 +36,45 @@ namespace ArWidgetApi.Services
             _rsa.ImportFromPem(keyData.PrivateKey);
         }
 
-        public string GenerateSignedUrl(string objectName)
+        public string GenerateSignedUrl(string objectName, int expiresMinutes = 5)
         {
-            // expiration
-            TimeSpan expires = TimeSpan.FromMinutes(5);
-
             // request basics
-            string method = "GET";
             string host = "storage.googleapis.com";
+            string httpMethod = "GET";
 
-            // timestamps - IMPORTANT: do not change case/format after this point
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ"); // e.g. 20251114T150000Z
-            string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");       // e.g. 20251114
+            // timestamps
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
+            string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
+            // credential scope
             string region = "auto";
             string credentialScope = $"{dateStamp}/{region}/storage/goog4_request";
 
-            string canonicalUri = $"/{BucketName}/{objectName}";
+            // canonical URI
+            string canonicalUri = $"/{_bucketName}/{objectName}";
 
-            // canonical headers (names must be lowercase)
-            string canonicalHeaders =
-                $"host:{host}\n" +
-                $"x-goog-date:{timestamp}\n";
+            // canonical headers (only host!)
+            string canonicalHeaders = $"host:{host}\n";
 
-            // signed headers list (lowercase, semicolon separated)
-            string signedHeaders = "host;x-goog-date";
+            // signed headers (only host!)
+            string signedHeaders = "host";
 
-            // ------------------------
-            // canonical query string (must be included in canonical request, keys sorted)
-            // ------------------------
-            // We url-encode credential value (email/credentialScope) using EscapeDataString
-            string credentialValueEscaped = Uri.EscapeDataString(_serviceAccountEmail + "/" + credentialScope);
+            // URL params (canonical query string)
+            string credential = Uri.EscapeDataString($"{_serviceAccountEmail}/{credentialScope}");
 
-            // Note: X-Goog-SignedHeaders in canonical query string must be the literal "host;x-goog-date"
-            // and its value must NOT be additionally escaped beyond what Uri.EscapeDataString does for other fields.
-            // For safety, we'll include signedHeaders unescaped in canonicalQueryString, but when composing final URL
-            // we'll use Uri.EscapeDataString for the parameter values where appropriate.
             string canonicalQueryString =
                 $"X-Goog-Algorithm=GOOG4-RSA-SHA256" +
-                $"&X-Goog-Credential={credentialValueEscaped}" +
+                $"&X-Goog-Credential={credential}" +
                 $"&X-Goog-Date={timestamp}" +
-                $"&X-Goog-Expires={(int)expires.TotalSeconds}" +
+                $"&X-Goog-Expires={expiresMinutes * 60}" +
                 $"&X-Goog-SignedHeaders={signedHeaders}";
 
-            // ------------------------
-            // canonical request
-            // ------------------------
-            // payload hash for GET is SHA256 of empty string
+            // payload hash for GET
             string payloadHash = SHA256Hex("");
 
+            // canonical request
             string canonicalRequest =
-                $"{method}\n" +
+                $"{httpMethod}\n" +
                 $"{canonicalUri}\n" +
                 $"{canonicalQueryString}\n" +
                 $"{canonicalHeaders}\n" +
@@ -96,36 +83,27 @@ namespace ArWidgetApi.Services
 
             string canonicalRequestHash = SHA256Hex(canonicalRequest);
 
-            // ------------------------
             // string to sign
-            // ------------------------
             string stringToSign =
                 "GOOG4-RSA-SHA256\n" +
                 $"{timestamp}\n" +
                 $"{credentialScope}\n" +
                 $"{canonicalRequestHash}";
 
-            // ------------------------
-            // signature (sign stringToSign using RSA private key, SHA256, PKCS#1 v1.5)
-            // ------------------------
+            // sign
             byte[] signatureBytes = _rsa.SignData(
                 Encoding.UTF8.GetBytes(stringToSign),
                 HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1
-            );
+                RSASignaturePadding.Pkcs1);
 
-            string signatureHex = BitConverter
-                .ToString(signatureBytes)
+            string signatureHex = BitConverter.ToString(signatureBytes)
                 .Replace("-", "")
                 .ToLowerInvariant();
 
-            // ------------------------
-            // final URL: canonicalQueryString (already contains all except signature) + signature param
-            // make sure to escape signed headers in final URL
-            // ------------------------
+            // final URL
             string finalUrl =
                 $"https://{host}{canonicalUri}?" +
-                canonicalQueryString +
+                $"{canonicalQueryString}" +
                 $"&X-Goog-Signature={signatureHex}";
 
             return finalUrl;
@@ -135,9 +113,11 @@ namespace ArWidgetApi.Services
         {
             using var sha256 = SHA256.Create();
             byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+
             var sb = new StringBuilder();
             foreach (byte b in hash)
                 sb.Append(b.ToString("x2"));
+
             return sb.ToString();
         }
     }
