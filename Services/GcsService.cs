@@ -71,8 +71,9 @@ namespace ArWidgetApi.Services 
             string urlPath = $"/{BucketName}/{objectName}";
             
             // Canonical Request
-            string canonicalRequest = $"GET\n{urlPath}\n\n\nhost:storage.googleapis.com\nx-goog-date:{timestamp}\n\nhost;x-goog-date\n";
-            
+            string canonicalRequest = $"GET\n{urlPath}\n\n\nhost:storage.googleapis.com\n" +
+                          $"x-goog-date:{timestamp}\n\n" + // BŁĄD: TUTAJ BYŁA SPALOWA LINIA Z PODWÓJNYM \n\n, co dodaje niechciane puste nagłówki
+                          $"host;x-goog-date\n";
             // String To Sign
             string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
 
