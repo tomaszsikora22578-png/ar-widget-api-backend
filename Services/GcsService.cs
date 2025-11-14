@@ -18,25 +18,24 @@ namespace ArWidgetApi.Services
             // która przyjmuje poświadczenia jako argument.
         }
 
-        public string GenerateSignedUrl(string objectName)
-        {
-            var expiration = DateTimeOffset.UtcNow.AddMinutes(5);
-            
-            // POBRANIE POŚWIADCZEŃ (jest to najstabilniejsze w Cloud Run)
-            var credential = GoogleCredential.GetApplicationDefault();
+       public string GenerateSignedUrl(string objectName)
+{
+    var expiration = DateTimeOffset.UtcNow.AddMinutes(5);
+    
+    // POBRANIE POŚWIADCZEŃ (W Cloud Run to jest stabilne)
+    var credential = GoogleCredential.GetApplicationDefault();
 
-            // UŻYCIE STATYCZNEJ METODY UrlSigner.Sign Z JAWNYM POŚWIADCZENIEM
-            // Wymaga użycia klasy UrlSigner.
-            // Sprawdź dokumentację: ta metoda często działa, nawet gdy inne zawodzą.
-            string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
-                bucketName: BucketName,
-                objectName: objectName,
-                expiration: expiration,
-                method: HttpMethod.Get,
-                credential: credential // Przekazujemy poświadczenia
-            );
-            
-            return signedUrl;
-        }
+    // UŻYCIE STATYCZNEJ METODY UrlSigner.Sign Z ARGUMENTAMI POZYCYJNYMI
+    // Usuwamy jawne nazwy parametrów (`bucketName:`, `objectName:` itp.)
+    string signedUrl = Google.Cloud.Storage.V1.UrlSigner.Sign(
+        BucketName,             // 1. Nazwa Bucketa (bucketName)
+        objectName,             // 2. Nazwa Obiektu (objectName)
+        expiration,             // 3. Wygasanie (expiration)
+        HttpMethod.Get,         // 4. Metoda HTTP (method)
+        credential              // 5. Poświadczenia (credential)
+    );
+    
+    return signedUrl;
+}
     }
 }
