@@ -1,38 +1,39 @@
 using Google.Cloud.Storage.V1;
 using System.Net.Http;
 using System;
+using Google.Apis.Auth.OAuth2; // DODAJ
+using Google.Apis.Storage.v1.Data; // DODAJ
+using System.Security.Cryptography.X509Certificates;
+using Google.Cloud.Storage.V1.Signing; // DODAJ
 
-namespace ArWidgetApi.Services // Zmień namespace na swój
+namespace ArWidgetApi.Services 
 {
     public class GcsService
     {
-        private readonly StorageClient _storageClient;
-        // !!! ZMIEŃ NA NAZWĘ SWOJEGO BUCKETA !!!
+        // ... Pola read-only ...
         private const string BucketName = "ar-models-dla-klientow"; 
+        
+        // POTRZEBUJEMY TEGO DLA GENEROWANIA URL
+        private readonly UrlSigner _urlSigner; // NOWE POLE
 
         public GcsService()
         {
-            // Klient automatycznie pobierze poświadczenia z konta serwisowego Cloud Run
-            _storageClient = StorageClient.Create();
+            // UrlSigner automatycznie używa poświadczeń Cloud Run
+            // W środowisku Google Cloud, to działa automatycznie.
+            var credential = GoogleCredential.GetApplicationDefault();
+            _urlSigner = UrlSigner.FromCredential(credential); // NOWA INICJALIZACJA
         }
 
-        /// <summary>
-        /// Generuje tymczasowy, podpisany adres URL dla obiektu w GCS (GLB lub USDZ).
-        /// Używamy tego dla prywatnych (płatnych) zasobów.
-        /// </summary>
-        /// <param name="objectName">Pełna ścieżka obiektu GCS (np. 'clients/KLIENT_A_ID/fotel.usdz')</param>
-        /// <returns>Tymczasowy URL do pobrania modelu.</returns>
         public string GenerateSignedUrl(string objectName)
         {
-            // Czas ważności linku: 5 minut.
-            var expiration = DateTimeOffset.UtcNow.AddMinutes(5).DateTime;
+            var expiration = DateTimeOffset.UtcNow.AddMinutes(5);
             
-            // Konieczne jest użycie HttpMethod.Get
-            var url = _storageClient.CreateSignedUrl(
-                bucketName: BucketName,
-                objectName: objectName,
-                expiration: expiration,
-                method: HttpMethod.Get
+            // NOWA IMPLEMENTACJA Z UŻYCIEM UrlSigner
+            var url = _urlSigner.Sign(
+                BucketName,
+                objectName,
+                expiration,
+                HttpMethod.Get
             );
             
             return url;
