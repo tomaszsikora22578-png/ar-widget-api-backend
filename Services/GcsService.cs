@@ -60,44 +60,55 @@ namespace ArWidgetApi.Services 
         }
 
         // Metoda GenerateSignedUrl pozostaje bez zmian
-        public string GenerateSignedUrl(string objectName)
-        {
-            TimeSpan duration = TimeSpan.FromMinutes(5);
-            
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
-            string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
+       public string GenerateSignedUrl(string objectName)
+{
+    TimeSpan duration = TimeSpan.FromMinutes(5);
+    
+    string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+    string dateStamp = DateTime.UtcNow.ToString("yyyyMMdd");
 
-            // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
-            string urlPath = $"/{BucketName}/{objectName}";
-            
-            // Canonical Request
-            string canonicalRequest = $"GET\n{urlPath}\n\n\nhost:storage.googleapis.com\n" +
-                          $"x-goog-date:{timestamp}\n\n" + // BŁĄD: TUTAJ BYŁA SPALOWA LINIA Z PODWÓJNYM \n\n, co dodaje niechciane puste nagłówki
-                          $"host;x-goog-date\n";
-            // String To Sign
-            string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
+    // --- 1. TWORZENIE ŁAŃCUCHA DO PODPISU (V4) ---
+    string urlPath = $"/{BucketName}/{objectName}";
+    
+    // Canonical Request - KRYTYCZNA POPRAWKA w formatowaniu Nagłówków
+    // 1. GET\n
+    // 2. /bucket/object\n
+    // 3. \n (Pusta linia dla Query String)
+    // 4. host:storage.googleapis.com\n
+    // 5. x-goog-date:YYYYMMDDTHHMMSSZ\n
+    // 6. \n (Pusta linia dla Payload Hash)
+    // 7. host;x-goog-date (Signed Headers)
+    
+    string canonicalRequest = $"GET\n{urlPath}\n\n" +
+                              $"host:storage.googleapis.com\n" +
+                              $"x-goog-date:{timestamp}\n\n" + // To jest teraz linia nr 5 i 6 (nagłówek i pusta linia dla Payload Hash)
+                              $"host;x-goog-date"; // Linia nr 7 (Signed Headers)
 
-            // --- 2. PODPISANIE ŁAŃCUCHA KLUCZEM PRYWATNYM ---
-            byte[] signatureBytes;
-            using (var sha256 = SHA256.Create())
-            {
-                byte[] data = Encoding.UTF8.GetBytes(stringToSign);
-                signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            }
+    // String To Sign
+    // Context Path w GCS dla Signed URLs jest po prostu /storage/goog4_request
+    string stringToSign = $"GOOG4-RSA-SHA256\n{timestamp}\n/storage/goog4_request\n{SHA256Hash(canonicalRequest)}";
 
-            string hexSignature = BitConverter.ToString(signatureBytes).Replace("-", "").ToLowerInvariant();
+    // --- 2. PODPISANIE ŁAŃCUCHA KLUCZEM PRYWATNYM ---
+    byte[] signatureBytes;
+    using (var sha256 = SHA256.Create())
+    {
+        byte[] data = Encoding.UTF8.GetBytes(stringToSign);
+        signatureBytes = _rsaSigner.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    }
 
-            // --- 3. SKŁADANIE KOŃCOWEGO URLA ---
-            string signedUrl = $"https://storage.googleapis.com{urlPath}" +
-                               $"?X-Goog-Signature={hexSignature}" +
-                               $"&X-Goog-Algorithm=GOOG4-RSA-SHA256" +
-                               $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail)}%2F{dateStamp}%2Fauto%2Fstorage%2Fgoog4_request" +
-                               $"&X-Goog-Date={timestamp}" +
-                               $"&X-Goog-Expires={(long)duration.TotalSeconds}" +
-                               $"&X-Goog-SignedHeaders=host%3Bx-goog-date";
-                               
-            return signedUrl;
-        }
+    string hexSignature = BitConverter.ToString(signatureBytes).Replace("-", "").ToLowerInvariant();
+
+    // --- 3. SKŁADANIE KOŃCOWEGO URLA ---
+    string signedUrl = $"https://storage.googleapis.com{urlPath}" +
+                        $"?X-Goog-Signature={hexSignature}" +
+                        $"&X-Goog-Algorithm=GOOG4-RSA-SHA256" +
+                        $"&X-Goog-Credential={Uri.EscapeDataString(_serviceAccountEmail)}%2F{dateStamp}%2Fauto%2Fstorage%2Fgoog4_request" +
+                        $"&X-Goog-Date={timestamp}" +
+                        $"&X-Goog-Expires={(long)duration.TotalSeconds}" +
+                        $"&X-Goog-SignedHeaders=host%3Bx-goog-date";
+                        
+    return signedUrl;
+}
         
         // Funkcja pomocnicza do hashowania SHA256 (Hash of the Canonical Request)
         private string SHA256Hash(string input)
