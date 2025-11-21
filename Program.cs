@@ -13,7 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 🔹 Konfiguracja CORS — dokładne domeny frontendu
+// 🔹 Konfiguracja CORS — poprawne domeny frontendu
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCORS, policy =>
@@ -24,10 +24,11 @@ builder.Services.AddCors(options =>
             "https://ar-widget-project.firebaseapp.com",
             "https://ar-widget-project.web.app"
         )
+        // ✅ Poprawka: AllowAnyHeader jest niezbędne dla X-Client-Token
         .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        // ✅ Poprawka: Prawidłowe zezwolenie na wszystkie metody (GET, POST, OPTIONS)
         .AllowAnyMethod();
+        // Usunięto .AllowCredentials(), ponieważ nie było potrzebne i komplikowało CORS
     });
 });
 
@@ -35,11 +36,12 @@ builder.Services.AddCors(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 // Rejestracja serwisów
-builder.Services.AddSingleton<GcsService>(); // GcsService nie potrzebuje argumentów (używa poświadczeń Cloud Run)
+builder.Services.AddSingleton<GcsService>(); 
 var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
 if (isCloudRun)
 {
+    // Użycie połączenia przez Gniazdo UNIX, wymagające konfiguracji w Cloud Run Connections
     connectionString = $"Server=/cloudsql/{cloudSqlInstance};Database=ArWidgetDb;Uid=ar-widget-mysql;Pwd=0S3I5ggLGtP71c]V;";
 }
 
@@ -54,7 +56,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // 🔹 Logowanie do konsoli
 Console.WriteLine(isCloudRun
-    ? $"[INFO] Użyto Cloud SQL przez UNIX socket: {cloudSqlInstance}"
+    ? $"[INFO] Użyto Cloud SQL przez gniazdo UNIX: {cloudSqlInstance}"
     : "[INFO] Użyto lokalnego połączenia MySQL.");
 
 // 🔹 Tworzymy aplikację
