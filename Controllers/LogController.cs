@@ -89,5 +89,35 @@ namespace ArWidgetApi.Controllers
             // Przekierowanie HTTP 302 Found
             return Redirect(actualSignedUrl); 
         }
+        [HttpGet("trackArView")]
+public async Task<IActionResult> TrackArView(string token, int productId)
+{
+    // 1. Walidacja tokenu i pobranie ClientId
+    var client = await _context.Clients
+        .SingleOrDefaultAsync(c => c.ClientToken == token && c.SubscriptionStatus == "Active");
+
+    if (client == null)
+    {
+        return Unauthorized();
+    }
+    
+    // 2. Utworzenie wpisu analitycznego z typem AR_VIEW
+    var entry = new AnalyticsEntry
+    {
+        ClientId = client.Id,
+        ProductId = productId,
+        EventType = "AR_VIEW", // <-- NOWY TYP ZDARZENIA
+        Timestamp = DateTime.UtcNow
+    };
+
+    // 3. Zapis do bazy
+    await _context.AnalyticsEntries.AddAsync(entry);
+    await _context.SaveChangesAsync();
+    
+    _logger.LogInformation($"✅ AR_VIEW zapisany: ClientId={client.Id}, ProductId={productId}");
+
+    // 4. Zwrócenie sukcesu bez treści (204 No Content)
+    return NoContent();
+}
     }
 }
