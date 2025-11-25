@@ -54,22 +54,42 @@ namespace ArWidgetApi.Controllers
             }
 
             // 3. GENEROWANIE SIGNED URLS I CZYSZCZENIE ŚCIEŻEK
-            foreach (var model in authorizedModels)
-            {
-                // GLB (Android)
-                if (!string.IsNullOrEmpty(model.ModelUrlGlb))
-                {
-                    model.SignedUrlGlb = _gcsService.GenerateSignedUrl(model.ModelUrlGlb);
-                    model.ModelUrlGlb = null; // Czyszczenie
-                }
+       foreach (var model in authorizedModels)
+{
+    // 1. Zbudowanie linku PROXY dla GLB
+    if (!string.IsNullOrEmpty(model.ModelUrlGlb))
+    {
+        model.SignedUrlGlb = Url.Action(
+            action: "TrackAndServe", 
+            controller: "Log", 
+            values: new { 
+                token = clientToken, 
+                productId = model.ProductId, // Upewnij się, że ModelDataDto ma to pole
+                fileType = "glb" 
+            }, 
+            protocol: Request.Scheme,
+            host: Request.Host.ToUriComponent()
+        );
+        model.ModelUrlGlb = null; 
+    }
 
-                // USDZ (iOS)
-                if (!string.IsNullOrEmpty(model.ModelUrlUsdz))
-                {
-                    model.SignedUrlUsdz = _gcsService.GenerateSignedUrl(model.ModelUrlUsdz);
-                    model.ModelUrlUsdz = null; // Czyszczenie
-                }
-            }
+    // 2. Zbudowanie linku PROXY dla USDZ
+    if (!string.IsNullOrEmpty(model.ModelUrlUsdz))
+    {
+        model.SignedUrlUsdz = Url.Action(
+            action: "TrackAndServe", 
+            controller: "Log", 
+            values: new { 
+                token = clientToken, 
+                productId = model.ProductId,
+                fileType = "usdz" 
+            }, 
+            protocol: Request.Scheme,
+            host: Request.Host.ToUriComponent()
+        );
+        model.ModelUrlUsdz = null; 
+    }
+}
 
             // 4. Zwracamy listę produktów jako JSON (ModelDataDto)
             return Ok(authorizedModels);
