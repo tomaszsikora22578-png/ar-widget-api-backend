@@ -68,7 +68,7 @@ namespace ArWidgetApi.Controllers
                 productId = model.ProductId, // Upewnij się, że ModelDataDto ma to pole
                 fileType = "glb" 
             }, 
-            protocol: Request.Scheme,
+            protocol: "https",
             host: Request.Host.ToUriComponent()
         );
         model.ModelUrlGlb = null; 
@@ -85,7 +85,7 @@ namespace ArWidgetApi.Controllers
                 productId = model.ProductId,
                 fileType = "usdz" 
             }, 
-            protocol: Request.Scheme,
+            protocol: "https",
             host: Request.Host.ToUriComponent()
         );
         model.ModelUrlUsdz = null; 
