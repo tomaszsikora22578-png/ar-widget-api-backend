@@ -3,6 +3,7 @@ namespace ArWidgetApi.Models
     public class ModelDataDto
     {
         // Pola mapowane z bazy danych
+        public int ProductId { get; set; }
         public string Name { get; set; } 
         public string ModelUrlGlb { get; set; } 
         public string ModelUrlUsdz { get; set; }
