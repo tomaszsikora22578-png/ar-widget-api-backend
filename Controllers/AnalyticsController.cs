@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging; // Upewnij się, że to jest
-
+using Microsoft.EntityFrameworkCore;
 namespace ArWidgetApi.Controllers
 {
     [ApiController]
