@@ -9,7 +9,7 @@ namespace ArWidgetApi.Models
         public string ModelUrlUsdz { get; set; }
         
         // Pola na generowane Signed URL (zwracane do frontendu)
-        public string SignedUrlGlb { get; set; }
-        public string SignedUrlUsdz { get; set; } 
+        public string SignedUrlGlb { get; set; } = string.Empty; // Upewnij się, że są zainicjalizowane!
+    public string SignedUrlUsdz { get; set; } = string.Empty;
     }
 }
