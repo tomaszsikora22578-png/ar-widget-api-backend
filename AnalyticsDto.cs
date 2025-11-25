@@ -3,7 +3,7 @@ namespace ArWidgetApi
     public class AnalyticsDto
     {
         public string ClientToken { get; set; } // Z tokenu wiemy, ktĂłry klient
-        public string ProductId { get; set; }   // SKU klikniÄ™tego produktu
+        public int ProductId { get; set; }   // SKU klikniÄ™tego produktu
         // W przyszĹ‚oĹ›ci mozesz dodac EventType, np. "3D_View"
     }
 }
