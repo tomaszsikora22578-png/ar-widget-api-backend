@@ -89,34 +89,51 @@ namespace ArWidgetApi.Controllers
             // Przekierowanie HTTP 302 Found
             return Redirect(actualSignedUrl); 
         }
-        [HttpGet("trackArView")]
-public async Task<IActionResult> TrackArView(string token, int productId)
+[HttpGet("trackArView")]
+public async Task<IActionResult> TrackArView(
+    [FromQuery] string token, 
+    [FromQuery] int productId)
 {
+    if (string.IsNullOrEmpty(token))
+    {
+        return BadRequest("Brak tokenu klienta.");
+    }
+
     // 1. Walidacja tokenu i pobranie ClientId
     var client = await _context.Clients
         .SingleOrDefaultAsync(c => c.ClientToken == token && c.SubscriptionStatus == "Active");
 
     if (client == null)
     {
-        return Unauthorized();
+        _logger.LogWarning($"[AR_VIEW] Token nieaktywny lub nieznany: {token}");
+        return Unauthorized(); // Status 401
     }
     
-    // 2. Utworzenie wpisu analitycznego z typem AR_VIEW
-    var entry = new AnalyticsEntry
+    // 2. Logowanie Zdarzenia (AR_VIEW) z obsługą błędów
+    try
     {
-        ClientId = client.Id,
-        ProductId = productId,
-        EventType = "AR_VIEW", // <-- NOWY TYP ZDARZENIA
-        Timestamp = DateTime.UtcNow
-    };
+        var entry = new AnalyticsEntry
+        {
+            ClientId = client.Id,
+            ProductId = productId,
+            EventType = "AR_VIEW", // <-- NOWY TYP ZDARZENIA
+            Timestamp = DateTime.UtcNow
+        };
 
-    // 3. Zapis do bazy
-    await _context.AnalyticsEntries.AddAsync(entry);
-    await _context.SaveChangesAsync();
-    
-    _logger.LogInformation($"✅ AR_VIEW zapisany: ClientId={client.Id}, ProductId={productId}");
+        await _context.AnalyticsEntries.AddAsync(entry);
+        await _context.SaveChangesAsync();
+        
+        _logger.LogInformation($"✅ AR_VIEW zapisany: ClientId={client.Id}, ProductId={productId}");
+    }
+    catch (Exception ex)
+    {
+        // 🛑 WAŻNE: W przypadku błędu zapisu logujemy go, ale ZWRACAMY SUKCES 204.
+        // Użytkownik nie musi wiedzieć, że analityka zawiodła.
+        _logger.LogError(ex, $"🛑 BŁĄD ZAPISU ANALITYKI AR_VIEW. Kontynuowanie operacji.");
+        // Nie rzucamy wyjątku i pozwalamy na przejście do return NoContent()
+    }
 
-    // 4. Zwrócenie sukcesu bez treści (204 No Content)
+    // 3. Zwrócenie sukcesu bez treści (204 No Content)
     return NoContent();
 }
     }
