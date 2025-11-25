@@ -39,7 +39,8 @@ namespace ArWidgetApi.Controllers
                 .SelectMany(c => c.ClientProductAccess) // Zakładamy relację w DbContext
                 .Select(cpa => cpa.Product) // Pobieramy obiekty Product
                 .Select(p => new ModelDataDto // Mapujemy bezpośrednio na DTO
-                {
+                {
+                    ProductId = p.Id,
                     Name = p.Name,
                     ModelUrlGlb = p.ModelUrlGlb, // Ścieżki GCS z bazy
                     ModelUrlUsdz = p.ModelUrlUsdz,
