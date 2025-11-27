@@ -22,7 +22,8 @@ builder.Services.AddCors(options =>
             "http://127.0.0.1:5500",
             "https://tomaszsikora22578-png.github.io",
             "https://ar-widget-project.firebaseapp.com",
-            "https://ar-widget-project.web.app"
+            "https://ar-widget-project.web.app",
+            "https://intelicore.pl"
         )
         // ✅ Poprawka: AllowAnyHeader jest niezbędne dla X-Client-Token
         .AllowAnyHeader()
