@@ -6,7 +6,7 @@ namespace ArWidgetApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [AllowAnonymous]
+  
     public class ContactController : ControllerBase
     {
         private readonly IEmailService _emailService;
