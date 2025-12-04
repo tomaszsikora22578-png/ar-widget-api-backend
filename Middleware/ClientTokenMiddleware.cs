@@ -21,15 +21,13 @@ namespace ArWidgetApi.Middleware
 
         public async Task InvokeAsync(HttpContext context, ApplicationDbContext dbContext)
         {
-                    var contactPath = "/api/Contact/submit"; 
+                var contactPath = "/api/Contact/submit";
 
     // 2. SPRAWDZENIE JAWNEJ ŚCIEŻKI
-    // Porównaj początek ścieżki (bez uwzględniania wielkości liter)
     if (context.Request.Path.StartsWithSegments(contactPath, StringComparison.OrdinalIgnoreCase))
     {
-        // Jeśli jest to endpoint kontaktowy, POMIŃ walidację tokena.
         // Żądanie trafi bezpośrednio do ContactController.
-        await next(context);
+        await _next(context); // ⬅️ KOREKTA: Zmieniono 'next' na '_next'
         return; // Zakończ działanie middleware.
     }
             // 🔹 Przepuść preflight CORS (OPTIONS)
