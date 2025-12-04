@@ -2,6 +2,7 @@ using ArWidgetApi.Data;
 using ArWidgetApi.Middleware;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Services;
+using
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +13,10 @@ const string ClientAppCORS = "_clientAppCORS";
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+// 🔹 Konfiguracja serwisu pocztowego
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+// 🔹 Rejestracja serwisu email
+builder.Services.AddScoped<IEmailService, EmailService>();
 // 🔹 Konfiguracja CORS — poprawne domeny frontendu
 builder.Services.AddCors(options =>
 {
