@@ -2,7 +2,8 @@ using ArWidgetApi.Data;
 using ArWidgetApi.Middleware;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Services;
-using
+using ArWidgetApi.Models;
+using ArWidgetApi.Models.IEmailService;
 
 var builder = WebApplication.CreateBuilder(args);
 
