@@ -2,6 +2,7 @@ using ArWidgetApi.Models;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Options;
 
 namespace ArWidgetApi.Services
@@ -73,11 +74,26 @@ namespace ArWidgetApi.Services
     }
 
     // Pamiętaj, aby stworzyć też ten model!
-    public class ContactFormData
-    {
-        public string Imie { get; set; }
-        public string Email { get; set; }
-        public string Firma { get; set; }
-        public string Wiadomosc { get; set; }
-    }
+   public class ContactFormData
+{
+    // Ograniczenie do 100 znaków (Imię i Nazwisko)
+    [Required(ErrorMessage = "Pole Imię i Nazwisko jest wymagane.")]
+    [MaxLength(60, ErrorMessage = "Imię i Nazwisko może zawierać maksymalnie 100 znaków.")]
+    public string Imie { get; set; }
+
+    // Wymagany i musi być poprawnym formatem email
+    [Required(ErrorMessage = "Adres e-mail jest wymagany.")]
+    [EmailAddress(ErrorMessage = "Proszę podać poprawny adres e-mail.")]
+    public string Email { get; set; }
+
+    // Ograniczenie do 100 znaków (Nazwa Firmy)
+    [Required(ErrorMessage = "Pole Nazwa Sklepu / Firmy jest wymagane.")]
+    [MaxLength(100, ErrorMessage = "Nazwa Firmy może zawierać maksymalnie 100 znaków.")]
+    public string Firma { get; set; }
+
+    // Ograniczenie do 500 znaków (Wiadomość)
+    [Required(ErrorMessage = "Pole Wiadomość jest wymagane.")]
+    [MaxLength(600, ErrorMessage = "Wiadomość może zawierać maksymalnie 500 znaków.")]
+    public string Wiadomosc { get; set; }
+}
 }
