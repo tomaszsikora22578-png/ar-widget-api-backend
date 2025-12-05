@@ -78,17 +78,17 @@ namespace ArWidgetApi.Services
 {
     // Ograniczenie do 100 znaków (Imię i Nazwisko)
     [Required(ErrorMessage = "Pole Imię i Nazwisko jest wymagane.")]
-    [MaxLength(60, ErrorMessage = "Imię i Nazwisko może zawierać maksymalnie 100 znaków.")]
+    [MaxLength(30, ErrorMessage = "Imię i Nazwisko może zawierać maksymalnie 100 znaków.")]
     public string Imie { get; set; }
 
     // Wymagany i musi być poprawnym formatem email
     [Required(ErrorMessage = "Adres e-mail jest wymagany.")]
-    [EmailAddress(ErrorMessage = "Proszę podać poprawny adres e-mail.")]
+    [MaxLength(20, EmailAddress(ErrorMessage = "Proszę podać poprawny adres e-mail.")]
     public string Email { get; set; }
 
     // Ograniczenie do 100 znaków (Nazwa Firmy)
     [Required(ErrorMessage = "Pole Nazwa Sklepu / Firmy jest wymagane.")]
-    [MaxLength(100, ErrorMessage = "Nazwa Firmy może zawierać maksymalnie 100 znaków.")]
+    [MaxLength(50, ErrorMessage = "Nazwa Firmy może zawierać maksymalnie 100 znaków.")]
     public string Firma { get; set; }
 
     // Ograniczenie do 500 znaków (Wiadomość)
