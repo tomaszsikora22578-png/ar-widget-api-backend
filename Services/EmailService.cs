@@ -23,14 +23,12 @@ namespace ArWidgetApi.Services
             try
             {
                 var message = new MimeMessage();
-                // Nadawca (Od)
-                message.From.Add(new MailboxAddress("InteliCore Formularz", _emailSettings.FromEmail)); 
-                // Odbiorca (Do)
-                message.To.Add(new MailboxAddress("Tomasz Sikora", _emailSettings.ToEmail)); 
-                
-                // Odpowiedź trafi do klienta (ważne!)
-                message.ReplyTo.Add(new MailboxAddress(data.Imie, data.Email)); 
-                
+
+                message.From.Add(new MailboxAddress("InteliCore Formularz", _emailSettings.FromEmail));
+                message.To.Add(new MailboxAddress("Tomasz Sikora", _emailSettings.ToEmail));
+
+                message.ReplyTo.Add(new MailboxAddress(data.Imie, data.Email));
+
                 message.Subject = $"NOWE ZAPYTANIE (ASP.NET): {data.Imie} / {data.Firma}";
 
                 var bodyBuilder = new BodyBuilder
@@ -52,11 +50,12 @@ namespace ArWidgetApi.Services
 
                 using (var client = new SmtpClient())
                 {
-                    // Używamy bezpiecznego połączenia TLS/SSL
-                    await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort, SecureSocketOptions.SslOnConnect); 
-                    
-                    // Uwierzytelnienie
-                    await client.AuthenticateAsync(_emailSettings.SmtpUser, _emailSettings.SmtpPass); 
+                    await client.ConnectAsync(
+                        _emailSettings.SmtpHost,
+                        _emailSettings.SmtpPort,
+                        SecureSocketOptions.SslOnConnect);
+
+                    await client.AuthenticateAsync(_emailSettings.SmtpUser, _emailSettings.SmtpPass);
 
                     await client.SendAsync(message);
                     await client.DisconnectAsync(true);
@@ -72,28 +71,25 @@ namespace ArWidgetApi.Services
             }
         }
     }
+
+    // 🔥 MODEL NAPRAWIONY i WEWNĄTRZ NAMESPACE!
+    public class ContactFormData
+    {
+        [Required]
+        [MaxLength(30)]
+        public string Imie { get; set; }
+
+        [Required]
+        [EmailAddress]           // ← poprawnie
+        [MaxLength(50)]          // ← poprawnie
+        public string Email { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Firma { get; set; }
+
+        [Required]
+        [MaxLength(600)]
+        public string Wiadomosc { get; set; }
+    }
 }
-    // Pamiętaj, aby stworzyć też ten model!
-   public class ContactFormData
-{
-    // Ograniczenie do 100 znaków (Imię i Nazwisko)
-    [Required(ErrorMessage = "Pole Imię i Nazwisko jest wymagane.")]
-    [MaxLength(30, ErrorMessage = "Imię i Nazwisko może zawierać maksymalnie 100 znaków.")]
-    public string Imie { get; set; }
-
-    // Wymagany i musi być poprawnym formatem email
-    [Required(ErrorMessage = "Adres e-mail jest wymagany.")]
-    [MaxLength(20, EmailAddress(ErrorMessage = "Proszę podać poprawny adres e-mail.")]
-    public string Email { get; set; }
-
-    // Ograniczenie do 100 znaków (Nazwa Firmy)
-    [Required(ErrorMessage = "Pole Nazwa Sklepu / Firmy jest wymagane.")]
-    [MaxLength(50, ErrorMessage = "Nazwa Firmy może zawierać maksymalnie 100 znaków.")]
-    public string Firma { get; set; }
-
-    // Ograniczenie do 500 znaków (Wiadomość)
-    [Required(ErrorMessage = "Pole Wiadomość jest wymagane.")]
-    [MaxLength(600, ErrorMessage = "Wiadomość może zawierać maksymalnie 500 znaków.")]
-    public string Wiadomosc { get; set; }
-}
-
