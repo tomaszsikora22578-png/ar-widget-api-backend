@@ -72,7 +72,7 @@ namespace ArWidgetApi.Services
             }
         }
     }
-
+}
     // Pamiętaj, aby stworzyć też ten model!
    public class ContactFormData
 {
@@ -96,4 +96,4 @@ namespace ArWidgetApi.Services
     [MaxLength(600, ErrorMessage = "Wiadomość może zawierać maksymalnie 500 znaków.")]
     public string Wiadomosc { get; set; }
 }
-}
+
