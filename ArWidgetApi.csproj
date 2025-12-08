@@ -19,9 +19,6 @@
 <PackageReference Include="MailKit" Version="4.3.0" />
 <PackageReference Include="MimeKit" Version="4.3.0" />
 <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
-<Compile Include="DataContext.cs" />
-  <Compile Include="Services\JwtsService.cs" />
-  <Compile Include="Services\FirebaseService.cs" />
 </ItemGroup>
 
 
