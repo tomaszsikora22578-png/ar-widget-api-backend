@@ -1,23 +1,23 @@
-# Stage 1: Build the application
-# Użyj stabilnej obrazu SDK .NET 8.0 lub innej wersji, której używasz
+# Stage 1: build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Kopiowanie i przywracanie zależności
-COPY *.csproj .
+# Kopiujemy csproj i przywracamy paczki
+COPY *.csproj ./
 RUN dotnet restore
 
-# Kopiowanie reszty kodu i budowanie
+# Kopiujemy wszystkie pliki projektu
 COPY . .
+
+# Publikujemy projekt do folderu /app/publish
 RUN dotnet publish -c Release -o /app/publish
 
-# Stage 2: Create the final runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# Stage 2: runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-# Cloud Run domyślnie nasłuchuje na porcie 8080 (wymagane w kontenerze)
-ENV ASPNETCORE_URLS=http://+:8080 
-EXPOSE 8080
+
+# Kopiujemy opublikowaną aplikację
 COPY --from=build /app/publish .
-# Uruchomienie aplikacji
-ENTRYPOINT ["dotnet", "ArWidgetApi.dll"] 
-# Zmień "ArWidgetApi.dll" na nazwę pliku DLL Twojego głównego projektu
+
+# Ustawiamy entrypoint
+ENTRYPOINT ["dotnet", "ArWidgetApi.dll"]
