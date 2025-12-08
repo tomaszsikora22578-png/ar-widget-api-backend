@@ -19,7 +19,6 @@
 <PackageReference Include="MailKit" Version="4.3.0" />
 <PackageReference Include="MimeKit" Version="4.3.0" />
 <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
-<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 
