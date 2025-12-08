@@ -15,6 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // 🔹 Konfiguracja serwisu pocztowego
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 // 🔹 Rejestracja serwisu email
 builder.Services.AddScoped<IEmailService, EmailService>();
 // 🔹 Konfiguracja CORS — poprawne domeny frontendu
