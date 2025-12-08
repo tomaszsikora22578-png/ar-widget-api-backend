@@ -85,6 +85,7 @@ app.UseCors(ClientAppCORS);
 app.UseMiddleware<ClientTokenMiddleware>();
 
 // 🔹 Autoryzacja / kontrolery
+app.UseMiddleware<FirebaseAuthMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
