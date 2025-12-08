@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArWidgetApi.Controllers
+{
 [ApiController]
 [Route("api/admin")]
 public class AdminController : ControllerBase
@@ -48,4 +49,5 @@ public class AdminController : ControllerBase
         var analytics = await _db.AnalyticsEntries.ToListAsync();
         return Ok(analytics);
     }
+}
 }
