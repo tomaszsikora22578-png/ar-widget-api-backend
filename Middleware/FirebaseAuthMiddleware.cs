@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 public class FirebaseAuthMiddleware
 {
@@ -11,18 +12,49 @@ public class FirebaseAuthMiddleware
 
     public async Task Invoke(HttpContext context, IFirebaseAuthService authService)
     {
-        if (context.Request.Headers.TryGetValue("Authorization", out var authHeader))
-        {
-            var token = authHeader.ToString().Replace("Bearer ", "");
-            var decodedToken = await authService.VerifyIdTokenAsync(token);
+        // 🔥 1. Publiczne endpointy BEZ autoryzacji
+        var path = context.Request.Path.Value?.ToLower();
 
-            if (decodedToken != null)
-            {
-                // Przekazanie UID do dalszych endpointów
-                context.Items["FirebaseUid"] = decodedToken.Uid;
-            }
+        if (path == "/" ||
+            path.Contains("/swagger") ||
+            path.Contains("/status") ||
+            path.Contains("/health"))
+        {
+            await _next(context);
+            return;
         }
 
+        // 🔥 2. Sprawdź nagłówek Authorization
+        if (!context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync("Missing Authorization header");
+            return;
+        }
+
+        var token = authHeader.ToString().Replace("Bearer ", "").Trim();
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync("Invalid Authorization header");
+            return;
+        }
+
+        // 🔥 3. Weryfikacja tokenu Firebase
+        var decodedToken = await authService.VerifyIdTokenAsync(token);
+
+        if (decodedToken == null)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync("Invalid or expired Firebase token");
+            return;
+        }
+
+        // 🔥 4. Przekazujemy UID dalej
+        context.Items["FirebaseUid"] = decodedToken.Uid;
+
+        // 🔥 5. Kontynuujemy request
         await _next(context);
     }
 }
