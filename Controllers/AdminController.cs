@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Models;
+using ArWidgetApi.Data;
 
 namespace ArWidgetApi.Controllers
 {
