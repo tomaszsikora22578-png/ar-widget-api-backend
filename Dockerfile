@@ -1,33 +1,23 @@
-# 1️⃣ Wybór obrazu SDK do builda
+# Stage 1: Build the application
+# Użyj stabilnej obrazu SDK .NET 8.0 lub innej wersji, której używasz
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# 2️⃣ Kopiujemy tylko plik projektu i przywracamy pakiety
-COPY ArWidgetApi.csproj ./
-RUN dotnet restore ArWidgetApi.csproj
+# Kopiowanie i przywracanie zależności
+COPY *.csproj .
+RUN dotnet restore
 
-# 3️⃣ Kopiujemy wszystkie pozostałe pliki projektu
+# Kopiowanie reszty kodu i budowanie
 COPY . .
+RUN dotnet publish -c Release -o /app/publish
 
-# 4️⃣ Publikujemy projekt w trybie Release
-RUN dotnet publish ArWidgetApi.csproj -c Release -o /app/publish
-
-# ===============================
-
-# 5️⃣ Obraz runtime (mniejszy, do uruchomienia aplikacji)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Stage 2: Create the final runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-# 6️⃣ Kopiujemy pliki opublikowane z builda
-COPY --from=build /app/publish .
-
-# 7️⃣ Ustawienie zmiennej środowiskowej dla Google Secret Manager
-# Przykładowo nazwa secreta: firebase-admin-key
-# Cloud Run: dodaj secret do serwisu i ustaw ENV: FIREBASE_SECRET_PATH=/secrets/firebase-admin-key.json
-ENV FIREBASE_SECRET_PATH=/secrets/firebase-admin-key.json
-
-# 8️⃣ Otwieramy port
+# Cloud Run domyślnie nasłuchuje na porcie 8080 (wymagane w kontenerze)
+ENV ASPNETCORE_URLS=http://+:8080 
 EXPOSE 8080
-
-# 9️⃣ Uruchamiamy aplikację
-ENTRYPOINT ["dotnet", "ArWidgetApi.dll"]
+COPY --from=build /app/publish .
+# Uruchomienie aplikacji
+ENTRYPOINT ["dotnet", "ArWidgetApi.dll"] 
+# Zmień "ArWidgetApi.dll" na nazwę pliku DLL Twojego głównego projektu
