@@ -16,6 +16,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="MySqlConnector" Version="2.3.6" />
+<PackageReference Include="MailKit" Version="4.3.0" />
 <PackageReference Include="MimeKit" Version="4.3.0" />
 <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
 <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
