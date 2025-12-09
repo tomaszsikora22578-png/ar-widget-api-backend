@@ -1,4 +1,5 @@
 using FirebaseAdmin.Auth;
+using ArWidgetApi.Services;
 
 namespace ArWidgetApi.Services
 {
