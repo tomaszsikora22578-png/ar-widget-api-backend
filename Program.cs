@@ -56,7 +56,7 @@ builder.Services.AddDbContext<DataContext>(options =>
 // ========================
 // 5) Services
 // ========================
-builder.Services.AddScoped<FirebaseService>();
+builder.Services.AddScoped<FirebaseAuthService>();
 builder.Services.AddScoped<JwtsService>();
 builder.Services.AddControllers();
 
