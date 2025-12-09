@@ -17,31 +17,22 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // ========================
-// 2) CORS – dwie polityki
+// 2) CORS dla frontendu demo i panelu admina
 // ========================
 builder.Services.AddCors(options =>
 {
-    // Frontend demo 3D
     options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("https://intelicore.pl")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-
-    // Panel admina
-    options.AddPolicy("AllowAdmin", policy =>
     {
         policy.WithOrigins(
             "http://127.0.0.1:5500",
             "https://tomaszsikora22578-png.github.io",
             "https://ar-widget-project.firebaseapp.com",
-            "https://ar-widget-project.web.app"
+            "https://ar-widget-project.web.app",
+            "https://intelicore.pl"
         )
-        .AllowAnyHeader()
         .AllowAnyMethod()
-        .AllowCredentials();
+        .AllowAnyHeader();
+        // .AllowCredentials() - niepotrzebne do fetch / tokenów w nagłówkach
     });
 });
 
@@ -51,11 +42,16 @@ builder.Services.AddCors(options =>
 var firebaseKeyJson = builder.Configuration["firebase-admin-key"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
-var isCloudRun = !string.IsNullOrEmpty(cloudSqlInstance);
 
-if (isCloudRun)
+// Jeśli Cloud Run i Cloud SQL, użyj socketu
+if (!string.IsNullOrEmpty(cloudSqlInstance))
 {
     connectionString = $"Server=/cloudsql/{cloudSqlInstance};Database=ArWidgetDb;Uid=ar-widget-mysql;Pwd=0S3I5ggLGtP71c]V;";
+    Console.WriteLine($"[INFO] Cloud SQL via UNIX socket: {cloudSqlInstance}");
+}
+else
+{
+    Console.WriteLine("[INFO] Użyto lokalnego połączenia MySQL.");
 }
 
 // ========================
@@ -69,7 +65,7 @@ if (!string.IsNullOrEmpty(firebaseKeyJson))
         {
             Credential = GoogleCredential.FromJson(firebaseKeyJson)
         });
-        Console.WriteLine("🔥 Firebase Admin – OK!");
+        Console.WriteLine("🔥 Firebase Admin – załadowany OK!");
     }
     catch (Exception ex)
     {
@@ -78,16 +74,19 @@ if (!string.IsNullOrEmpty(firebaseKeyJson))
 }
 else
 {
-    Console.WriteLine("⚠️ Brak firebase-admin-key – panel admina będzie działał bez logowania Firebase");
+    Console.WriteLine("⚠️ Brak firebase-admin-key, panel admina będzie niedostępny.");
 }
 
 // ========================
-// 5) DATABASE
+// 5) DbContext
 // ========================
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (!string.IsNullOrEmpty(connectionString))
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mySqlOptions =>
+        {
+            mySqlOptions.EnableRetryOnFailure();
+        });
     else
         Console.WriteLine("❌ Brak ConnectionString DefaultConnection");
 });
@@ -97,63 +96,42 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ========================
 builder.Services.AddScoped<FirebaseAuthService>();
 builder.Services.AddScoped<JwtsService>();
+builder.Services.AddSingleton<GcsService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ========================
-// 7) Build app
+// 7) Build aplikacji
 // ========================
 var app = builder.Build();
 
-// ========================
-// 8) Middleware
-// ========================
-app.UseRouting();
-
-// 🔹 CORS musi być przed ClientTokenMiddleware
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value?.ToLower();
-
-    // Wybieramy politykę CORS w zależności od ścieżki
-    if (path != null && path.StartsWith("/api/product")) // endpointy modeli 3D
-        context.Response.Headers.Add("Access-Control-Allow-Origin", "https://intelicore.pl");
-    else
-        context.Response.Headers.Add("Access-Control-Allow-Origin", "*"); // admin i inne
-
-    await next();
-});
-
-// Lub prostsza metoda: możesz też użyć dedykowanych endpointów z UseCors("AllowFrontend")/UseCors("AllowAdmin") w mapowaniu
-
-// Middleware autoryzacji tokena
-app.UseMiddleware<ClientTokenMiddleware>();
-
-// Autoryzacja
-app.UseAuthorization();
-
-// Swagger tylko w dev
+// Swagger tylko w development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Mapowanie kontrolerów
+// ========================
+// 8) Middleware kolejność
+// ========================
+app.UseRouting();
+
+// CORS musi być PRZED middleware tokenowym
+app.UseCors("AllowFrontend");
+
+// Middleware autoryzacji tokenem klienta
+app.UseMiddleware<ClientTokenMiddleware>();
+
+app.UseAuthorization();
 app.MapControllers();
 
 // Endpoint zdrowia
 app.MapGet("/", () => "API działa OK ✔️");
-
-// Debug endpointów
-var dataSource = app.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>();
-Console.WriteLine("=== Lista dostępnych endpointów ===");
-foreach (var endpoint in dataSource.Endpoints)
-{
-    Console.WriteLine(endpoint.DisplayName);
-}
-Console.WriteLine("=== Koniec listy endpointów ===");
 
 // ========================
 // 9) Start
