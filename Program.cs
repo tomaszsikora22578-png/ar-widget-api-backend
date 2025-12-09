@@ -82,6 +82,7 @@ var app = builder.Build();
 // app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapControllers();
 
