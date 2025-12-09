@@ -15,6 +15,9 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenAnyIP(int.Parse(port));
 });
 
+// ========================
+// 2) CORS dla frontendu demo
+// ========================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -26,20 +29,17 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
+
 // ========================
-// 2) Config z Secret Manager / Env
+// 3) Config z Secret Manager / Env
 // ========================
 var firebaseKeyJson = builder.Configuration["firebase-admin-key"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // ========================
-// 3) Firebase Admin
+// 4) Firebase Admin (opcjonalnie, jeśli jest klucz)
 // ========================
-if (string.IsNullOrEmpty(firebaseKeyJson))
-{
-    Console.WriteLine("❌ Brak firebase-admin-key! Sprawdź Secret Manager w Cloud Run.");
-}
-else
+if (!string.IsNullOrEmpty(firebaseKeyJson))
 {
     try
     {
@@ -54,9 +54,13 @@ else
         Console.WriteLine("❌ Błąd inicjalizacji Firebase: " + ex.Message);
     }
 }
+else
+{
+    Console.WriteLine("❌ Brak firebase-admin-key! Sprawdź Secret Manager w Cloud Run.");
+}
 
 // ========================
-// 4) DATABASE
+// 5) DATABASE
 // ========================
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -67,30 +71,38 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // ========================
-// 5) Services
+// 6) Services
 // ========================
 builder.Services.AddScoped<FirebaseAuthService>();
 builder.Services.AddScoped<JwtsService>();
 builder.Services.AddControllers();
 
-// ========================
-// 6) App
-// ========================
 var app = builder.Build();
 
-// ❌ NIE WOLNO TEGO W CLOUD RUN
-// app.UseHttpsRedirection();
+// ========================
+// 7) Middleware i routing
+// ========================
 
+// 🔹 Routing musi być pierwszy
 app.UseRouting();
+
+// 🔹 Najpierw CORS, żeby OPTIONS działały
 app.UseCors("AllowFrontend");
+
+// 🔹 Potem Twój middleware walidacji tokena
+app.UseMiddleware<ClientTokenMiddleware>();
+
+// 🔹 Potem autoryzacja, jeśli używasz [Authorize]
 app.UseAuthorization();
+
+// 🔹 Mapowanie kontrolerów
 app.MapControllers();
 
 // Endpoint zdrowia dla Cloud Run
 app.MapGet("/", () => "API działa OK ✔️");
 
 // ========================
-// 7) Start
+// 8) Start
 // ========================
 Console.WriteLine($"🚀 API startuje na porcie {port}");
 app.Run();
