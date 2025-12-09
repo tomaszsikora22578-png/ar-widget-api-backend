@@ -1,20 +1,26 @@
-# Etap 1: build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Kopiujemy pliki projektu i wszystkie foldery ręcznie
+# Skopiuj projekt csproj
 COPY *.csproj ./
+
+# Debug: pokaż zawartość workspace przed kopiowaniem Services
+RUN echo "=== ZAWARTOŚĆ KATALOGU PRZED KOPIOWANIEM SERVICES ===" && ls -R
+
+# Skopiuj foldery
 COPY Services ./Services
 COPY Controllers ./Controllers
 COPY Middleware ./Middleware
 COPY Models ./Models
-COPY *.cs ./ 
+COPY *.cs ./
+
+# Debug: pokaż zawartość po skopiowaniu Services
+RUN echo "=== ZAWARTOŚĆ KATALOGU PO KOPIOWANIU SERVICES ===" && ls -R
 
 # Restore i publish
 RUN dotnet restore ./ArWidgetApi.csproj
 RUN dotnet publish ./ArWidgetApi.csproj -c Release -o /app/publish
 
-# Etap 2: runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
