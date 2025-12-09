@@ -47,7 +47,7 @@ else
 // ========================
 // 4) DATABASE
 // ========================
-builder.Services.AddDbContext<DataContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContex>(options =>
 {
     if (!string.IsNullOrEmpty(connectionString))
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
