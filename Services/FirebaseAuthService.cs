@@ -1,5 +1,7 @@
 using FirebaseAdmin.Auth;
 
+namespace ArWidgetApi.Services
+{
 public interface IFirebaseAuthService
 {
     Task<FirebaseToken> VerifyIdTokenAsync(string idToken);
@@ -20,4 +22,5 @@ public class FirebaseAuthService : IFirebaseAuthService
             return null;
         }
     }
+}
 }
