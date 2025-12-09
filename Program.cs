@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Services;
 using ArWidgetApi.Middleware;
 using ArWidgetApi;
+using ArWidgetApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
