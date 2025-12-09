@@ -2,6 +2,7 @@ using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Services;
+using ArWidgetApi.Middleware;
 using ArWidgetApi;
 
 var builder = WebApplication.CreateBuilder(args);
