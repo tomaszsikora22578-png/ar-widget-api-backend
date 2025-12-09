@@ -12,7 +12,7 @@ public class FirebaseAuthMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context, IFirebaseAuthService authService)
+    public async Task Invoke(HttpContext context, FirebaseAuthService firebaseAuth)
     {
         // 🔥 1. Publiczne endpointy BEZ autoryzacji
         var path = context.Request.Path.Value?.ToLower();
