@@ -2,7 +2,7 @@ using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
 using ArWidgetApi.Services;
-
+using ArWidgetApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +47,7 @@ else
 // ========================
 // 4) DATABASE
 // ========================
-builder.Services.AddDbContext<ApplicationDbContex>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (!string.IsNullOrEmpty(connectionString))
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
