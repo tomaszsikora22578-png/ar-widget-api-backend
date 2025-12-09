@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
+namespace ArWidgetApi.Middleware
+{
 public class FirebaseAuthMiddleware
 {
     private readonly RequestDelegate _next;
@@ -57,4 +59,5 @@ public class FirebaseAuthMiddleware
         // 🔥 5. Kontynuujemy request
         await _next(context);
     }
+}
 }
