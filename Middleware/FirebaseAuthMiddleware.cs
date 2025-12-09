@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using ArWidgetApi.Services;
 using System.Threading.Tasks;
 
 namespace ArWidgetApi.Middleware
