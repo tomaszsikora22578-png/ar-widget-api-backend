@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace ArWidgetApi.Data
+namespace ArWidgetApi
 {
     public class DataContext : ApplicationDbContext
     {
