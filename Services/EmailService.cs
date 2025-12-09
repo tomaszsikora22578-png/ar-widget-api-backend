@@ -4,6 +4,8 @@ using MailKit.Security;
 using MimeKit;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Options;
+using ArWidgetApi;
+
 
 namespace ArWidgetApi.Services
 {
