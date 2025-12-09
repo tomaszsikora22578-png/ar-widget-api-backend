@@ -45,7 +45,7 @@ public class FirebaseAuthMiddleware
         }
 
         // 🔥 3. Weryfikacja tokenu Firebase
-        var decodedToken = await authService.VerifyIdTokenAsync(token);
+        var decodedToken = await firebaseAuth.VerifyIdTokenAsync(token);
 
         if (decodedToken == null)
         {
