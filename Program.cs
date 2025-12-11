@@ -5,8 +5,16 @@ using ArWidgetApi.Services;
 using ArWidgetApi.Middleware;
 using ArWidgetApi;
 using ArWidgetApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ========================
+// 0) Ustawienia konfiguracji globalnej
+// ========================
+// 🚨 UPEWNIJ SIĘ, ŻE TO JEST DOKŁADNY ID PAŃSTWA PROJEKTU FIREBASE
+var firebaseProjectId = "ar-widget-project"; 
 
 // ========================
 // 1) PORT Cloud Run
@@ -93,13 +101,36 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // ========================
-// 6) Serwisy
+// 6) Serwisy i AUTENTYKACJA JWT DLA ADMINA
 // ========================
 builder.Services.AddScoped<FirebaseAuthService>();
 builder.Services.AddScoped<JwtsService>();
 builder.Services.AddSingleton<GcsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+// 🚨 DODANIE STANDARDOWEJ AUTENTYKACJI JWT DLA FIREBASE ADMINA
+builder.Services.AddAuthentication(options =>
+{
+    // Ustawienie schematu JWT Bearer jako domyślny
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    // Konfiguracja do weryfikacji tokenów Firebase ID
+    options.Authority = "https://securetoken.google.com/" + firebaseProjectId;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = "https://securetoken.google.com/" + firebaseProjectId, 
+        ValidateAudience = true,
+        ValidAudience = firebaseProjectId, // To musi być dokładnie Project ID
+        ValidateLifetime = true
+    };
+});
+// -------------------------------------------------------------
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -125,7 +156,10 @@ app.UseRouting();
 // CORS musi być PRZED middleware tokenowym
 app.UseCors("AllowFrontend");
 
-// Middleware autoryzacji tokenem klienta
+// 🚨 KRUCJALNE: Standardowa autentykacja musi być wywołana
+app.UseAuthentication(); 
+
+// Middleware autoryzacji tokenem klienta (pozostaje do celów modelu 3D / niestandardowych tokenów)
 app.UseMiddleware<ClientTokenMiddleware>();
 
 app.UseAuthorization();
