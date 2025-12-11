@@ -41,7 +41,6 @@ builder.Services.AddCors(options =>
         )
         .AllowAnyMethod()
         .AllowAnyHeader();
-        // .AllowCredentials() - niepotrzebne do fetch / tokenów w nagłówkach
     });
 });
 
@@ -52,7 +51,6 @@ var firebaseKeyJson = builder.Configuration["firebase-admin-key"];
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var cloudSqlInstance = builder.Configuration["CLOUD_SQL_CONNECTION_NAME"];
 
-// Jeśli Cloud Run i Cloud SQL, użyj socketu
 if (!string.IsNullOrEmpty(cloudSqlInstance))
 {
     connectionString = $"Server=/cloudsql/{cloudSqlInstance};Database=ArWidgetDb;Uid=ar-widget-mysql;Pwd=0S3I5ggLGtP71c]V;";
@@ -83,7 +81,7 @@ if (!string.IsNullOrEmpty(firebaseKeyJson))
 }
 else
 {
-    Console.WriteLine("⚠️ Brak firebase-admin-key, panel admina będzie niedostępny.");
+    Console.WriteLine("⚠️ Brak firebase-admin-key, panel admina może mieć ograniczone funkcje.");
 }
 
 // ========================
@@ -103,15 +101,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ========================
 // 6) Serwisy i AUTENTYKACJA JWT DLA ADMINA
 // ========================
-
+// Usunięto JwtsService i FirebaseAuthService zgodnie z ustaleniami
 builder.Services.AddSingleton<GcsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-// 🚨 DODANIE STANDARDOWEJ AUTENTYKACJI JWT DLA FIREBASE ADMINA
+// 🚨 KONFIGURACJA AUTENTYKACJI JWT DLA FIREBASE ADMINA
 builder.Services.AddAuthentication(options =>
 {
-    // Ustawienie schematu JWT Bearer jako domyślny
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
@@ -125,7 +122,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = true,
         ValidIssuer = "https://securetoken.google.com/" + firebaseProjectId, 
         ValidateAudience = true,
-        ValidAudience = firebaseProjectId, // To musi być dokładnie Project ID
+        ValidAudience = firebaseProjectId, 
         ValidateLifetime = true
     };
 });
@@ -152,15 +149,20 @@ if (app.Environment.IsDevelopment())
 // ========================
 app.UseRouting();
 
-// CORS musi być PRZED middleware tokenowym
 app.UseCors("AllowFrontend");
 
-// 🚨 KRUCJALNE: Standardowa autentykacja musi być wywołana
+// 1. STANDARDOWA AUTENTYKACJA (Weryfikuje token Firebase ID)
 app.UseAuthentication(); 
 
-// Middleware autoryzacji tokenem klienta (pozostaje do celów modelu 3D / niestandardowych tokenów)
-app.UseMiddleware<ClientTokenMiddleware>();
+// 2. WARUNKOWE WYWOŁANIE MIDDLEWARE
+// Niestandardowy ClientTokenMiddleware jest uruchamiany TYLKO, jeśli ścieżka NIE jest adminem.
+// Dzięki temu unika on prób walidacji tokena Firebase ID jako ClientTokena.
+app.UseWhen(context => !context.Request.Path.StartsWithSegments("/api/admin"), applicationBuilder =>
+{
+    applicationBuilder.UseMiddleware<ClientTokenMiddleware>();
+});
 
+// 3. AUTORYZACJA (Korzysta z wyniku UseAuthentication)
 app.UseAuthorization();
 app.MapControllers();
 
