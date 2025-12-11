@@ -1,10 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using ArWidgetApi.Models;
 using ArWidgetApi;
+using System.Security.Claims;
 
 namespace ArWidgetApi.Controllers
 {
+    // 🚨 KRUCJALNA ZMIANA: Wymuszenie weryfikacji tokena Firebase ID 
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/admin")]
     public class AdminController : ControllerBase
@@ -16,16 +21,21 @@ namespace ArWidgetApi.Controllers
         {
             _db = db;
 
-            // Pobranie UID adminów z konfiguracji (appsettings.json lub Secret Manager)
+            // Pobranie UID adminów z konfiguracji (np. appsettings.json lub Secret Manager)
             _adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
         }
 
-        // ✅ Sprawdzenie czy zalogowany użytkownik jest adminem
+        // ✅ Zaktualizowana logika: Sprawdzenie, czy zalogowany użytkownik jest na liście adminów
+        // Dane pobierane są z CLAIMS (Payload tokena), a nie z HttpContext.Items
         private bool IsAdmin()
         {
-            if (HttpContext.Items.TryGetValue("FirebaseUid", out var uid))
+            // Firebase ID Token zapisuje UID użytkownika w claimie "user_id" lub "sub"
+            var firebaseUidClaim = User.FindFirst("user_id") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (firebaseUidClaim != null)
             {
-                return _adminUids.Contains(uid?.ToString());
+                var uid = firebaseUidClaim.Value;
+                return _adminUids.Contains(uid);
             }
             return false;
         }
@@ -35,7 +45,12 @@ namespace ArWidgetApi.Controllers
         [HttpGet("clients")]
         public async Task<IActionResult> GetClients()
         {
-            if (!IsAdmin()) return Unauthorized();
+            // 🚨 Autoryzacja: Token jest ważny, teraz sprawdzamy, czy użytkownik jest adminem
+            if (!IsAdmin()) 
+            {
+                // Wracamy z błędem 403 Forbidden - użytkownik jest zalogowany (token ważny), ale nie ma uprawnień.
+                return Forbid(); 
+            }
 
             var clients = await _db.Clients
                 .Select(c => new ClientDto
@@ -52,7 +67,7 @@ namespace ArWidgetApi.Controllers
         [HttpGet("products")]
         public async Task<IActionResult> GetProducts()
         {
-            if (!IsAdmin()) return Unauthorized();
+            if (!IsAdmin()) return Forbid();
 
             var products = await _db.Products
                 .Select(p => new ProductDto
@@ -71,7 +86,7 @@ namespace ArWidgetApi.Controllers
         [HttpGet("analytics")]
         public async Task<IActionResult> GetAnalytics()
         {
-            if (!IsAdmin()) return Unauthorized();
+            if (!IsAdmin()) return Forbid();
 
             var analytics = await _db.AnalyticsEntries
                 .Select(a => new AnalyticsDto
@@ -89,6 +104,7 @@ namespace ArWidgetApi.Controllers
     }
 
     // ================= DTO =================
+    // (Klasy DTO są poza kontrolerem, ale dla kompletności pozostawione na końcu pliku)
     public class ClientDto
     {
         public int Id { get; set; }
