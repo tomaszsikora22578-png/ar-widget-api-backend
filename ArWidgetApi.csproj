@@ -19,6 +19,8 @@
 <PackageReference Include="MailKit" Version="4.3.0" />
 <PackageReference Include="MimeKit" Version="4.3.0" />
 <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
+<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.18" /> 
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.6.2" />
 </ItemGroup>
 
 
