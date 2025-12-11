@@ -103,8 +103,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ========================
 // 6) Serwisy i AUTENTYKACJA JWT DLA ADMINA
 // ========================
-builder.Services.AddScoped<FirebaseAuthService>();
-builder.Services.AddScoped<JwtsService>();
+
 builder.Services.AddSingleton<GcsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
