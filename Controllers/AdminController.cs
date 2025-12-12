@@ -22,7 +22,6 @@ namespace ArWidgetApi.Controllers
             _adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
         }
 
-        // Logika autoryzacji: Sprawdzenie, czy zalogowany użytkownik jest na liście adminów
         private bool IsAdmin()
         {
             var firebaseUidClaim = User.FindFirst("user_id") ?? User.FindFirst(ClaimTypes.NameIdentifier);
@@ -45,17 +44,16 @@ namespace ArWidgetApi.Controllers
 
             try
             {
-                // 🚨 Zmiana: Użycie ClientProductAccess zamiast Products
                 var clients = await _db.Clients
                     .Include(c => c.ClientProductAccess)
-                        .ThenInclude(cpa => cpa.Product) // Zakładamy, że ClientProductAccess ma referencję do Product
+                        .ThenInclude(cpa => cpa.Product)
                     .Select(c => new ClientDto
                     {
                         Id = c.Id,
                         Name = c.Name,
                         SubscriptionStatus = c.SubscriptionStatus,
                         ClientToken = c.ClientToken,
-                        // Wybieramy SKU z modelu pośredniczącego
+                        // 🚨 POPRAWKA: Używamy product_id w LINQ do dostępu do SKU
                         ProductSkus = c.ClientProductAccess
                                         .Select(cpa => cpa.Product.ProductSku) 
                                         .ToList() 
@@ -90,7 +88,7 @@ namespace ArWidgetApi.Controllers
                     Name = clientDto.Name ?? string.Empty,
                     SubscriptionStatus = clientDto.SubscriptionStatus ?? "Trial",
                     ClientToken = newToken,
-                    ClientProductAccess = new List<ClientProductAccess>() // Inicjalizacja kolekcji
+                    ClientProductAccess = new List<ClientProductAccess>() 
                 };
 
                 _db.Clients.Add(newClient);
@@ -169,7 +167,6 @@ namespace ArWidgetApi.Controllers
         {
             if (!IsAdmin()) return Forbid();
             
-            // 🚨 Zmiana: Ładowanie ClientProductAccess i sprawdzenie
             var client = await _db.Clients
                                   .Include(c => c.ClientProductAccess) 
                                   .FirstOrDefaultAsync(c => c.Id == clientId);
@@ -181,13 +178,19 @@ namespace ArWidgetApi.Controllers
             }
 
             // Sprawdzenie, czy relacja już istnieje
-            if (client.ClientProductAccess.Any(cpa => cpa.ProductId == productId))
+            // 🚨 POPRAWKA: Używamy product_id zamiast ProductId
+            if (client.ClientProductAccess.Any(cpa => cpa.product_id == productId))
             {
                  return BadRequest("Produkt jest już przypisany do tego klienta.");
             }
             
             // Tworzenie i przypisanie nowego obiektu pośredniczącego
-            client.ClientProductAccess.Add(new ClientProductAccess { ProductId = productId, ClientId = clientId });
+            // 🚨 POPRAWKA: Używamy product_id i client_id
+            client.ClientProductAccess.Add(new ClientProductAccess 
+            { 
+                product_id = productId, 
+                client_id = clientId 
+            });
             
             await _db.SaveChangesAsync();
             return Ok(new { Message = $"Produkt {productId} został przypisany do klienta {clientId}." });
@@ -204,99 +207,3 @@ namespace ArWidgetApi.Controllers
             try
             {
                 var products = await _db.Products
-                    .Select(p => new ProductDto
-                    {
-                        Id = p.Id,
-                        Name = p.Name,
-                        ProductSku = p.ProductSku,
-                        AltText = p.AltText,
-                        Description = p.Description
-                    })
-                    .ToListAsync();
-
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Database query failed (GetProducts): {ex.Message}");
-                return StatusCode(500, "Wystąpił błąd podczas pobierania danych produktów z bazy.");
-            }
-        }
-
-        // GET /api/admin/analytics
-        [HttpGet("analytics")]
-        public async Task<IActionResult> GetAnalytics()
-        {
-            if (!IsAdmin()) return Forbid();
-
-            try
-            {
-                var analytics = await _db.AnalyticsEntries
-                    .Select(a => new AnalyticsDto
-                    {
-                        Id = a.Id,
-                        ClientId = a.ClientId,
-                        ProductId = a.ProductId,
-                        EventType = a.EventType,
-                        Timestamp = a.Timestamp
-                    })
-                    .ToListAsync();
-
-                return Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Database query failed (GetAnalytics): {ex.Message}");
-                return StatusCode(500, "Wystąpił błąd podczas pobierania danych analitycznych z bazy.");
-            }
-        }
-    }
-
-    // ================= DTO =================
-    
-    // Używane do tworzenia nowego klienta
-    public class ClientCreateDto
-    {
-        public string Name { get; set; } = string.Empty; 
-        public string SubscriptionStatus { get; set; } = "Trial";
-    }
-    
-    // Zaktualizowane DTO dla widoku Klientów
-    public class ClientDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string SubscriptionStatus { get; set; } = string.Empty;
-        public string ClientToken { get; set; } = string.Empty; 
-        public List<string> ProductSkus { get; set; } = new List<string>(); // Wyświetlanie przypisanych produktów
-    }
-
-    // DTO dla produktów
-    public class ProductDto
-    {
-        public int Id { get; set; }
-        public string ProductSku { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string AltText { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-    }
-
-    // DTO dla wpisów analitycznych
-    public class AnalyticsDto
-    {
-        public int Id { get; set; }
-        public int ClientId { get; set; }
-        public int ProductId { get; set; }
-        public string EventType { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; }
-    }
-    
-    // 🚨 Wymaga istnienia tej klasy (ClientProductAccess), jeśli nie była podana wcześniej
-    public class ClientProductAccess
-    {
-        public int ClientId { get; set; }
-        public Client Client { get; set; } = default!;
-        public int ProductId { get; set; }
-        public Product Product { get; set; } = default!;
-    }
-}
