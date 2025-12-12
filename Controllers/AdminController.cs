@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using ArWidgetApi.Models; // Pamiętaj o dodaniu Twoich modeli
+using ArWidgetApi.Models; 
 using ArWidgetApi;
 using System.Security.Claims;
 
@@ -19,8 +19,6 @@ namespace ArWidgetApi.Controllers
         public AdminController(ApplicationDbContext db, IConfiguration configuration)
         {
             _db = db;
-
-            // Logika ładowania UID adminów (poprawiona wcześniej)
             _adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
         }
 
@@ -47,17 +45,20 @@ namespace ArWidgetApi.Controllers
 
             try
             {
-                // Wczytanie Klientów z ich produktami (używamy Products zamiast ClientProducts)
+                // 🚨 Zmiana: Użycie ClientProductAccess zamiast Products
                 var clients = await _db.Clients
-                    .Include(c => c.Products) // 🚨 Poprawka: Zakładamy, że Client ma kolekcję 'Products'
+                    .Include(c => c.ClientProductAccess)
+                        .ThenInclude(cpa => cpa.Product) // Zakładamy, że ClientProductAccess ma referencję do Product
                     .Select(c => new ClientDto
                     {
                         Id = c.Id,
                         Name = c.Name,
                         SubscriptionStatus = c.SubscriptionStatus,
-                        ClientToken = c.ClientToken ?? string.Empty,
-                        // Nowe pole: lista przypisanych SKU produktów
-                        ProductSkus = c.Products.Select(p => p.ProductSku).ToList() 
+                        ClientToken = c.ClientToken,
+                        // Wybieramy SKU z modelu pośredniczącego
+                        ProductSkus = c.ClientProductAccess
+                                        .Select(cpa => cpa.Product.ProductSku) 
+                                        .ToList() 
                     })
                     .ToListAsync();
 
@@ -86,11 +87,10 @@ namespace ArWidgetApi.Controllers
 
                 var newClient = new Client 
                 {
-                    Name = clientDto.Name,
+                    Name = clientDto.Name ?? string.Empty,
                     SubscriptionStatus = clientDto.SubscriptionStatus ?? "Trial",
                     ClientToken = newToken,
-                    // Inicjalizacja kolekcji (dla NRT: = new List<Product>() { })
-                    Products = new List<Product>() 
+                    ClientProductAccess = new List<ClientProductAccess>() // Inicjalizacja kolekcji
                 };
 
                 _db.Clients.Add(newClient);
@@ -169,9 +169,9 @@ namespace ArWidgetApi.Controllers
         {
             if (!IsAdmin()) return Forbid();
             
-            // 🚨 Poprawka: Ładowanie kolekcji Products do klienta
+            // 🚨 Zmiana: Ładowanie ClientProductAccess i sprawdzenie
             var client = await _db.Clients
-                                  .Include(c => c.Products) 
+                                  .Include(c => c.ClientProductAccess) 
                                   .FirstOrDefaultAsync(c => c.Id == clientId);
             var product = await _db.Products.FindAsync(productId);
 
@@ -180,14 +180,14 @@ namespace ArWidgetApi.Controllers
                 return NotFound("Klient lub Produkt nie został znaleziony.");
             }
 
-            // Sprawdzenie, czy produkt już jest przypisany
-            if (client.Products.Any(p => p.Id == productId))
+            // Sprawdzenie, czy relacja już istnieje
+            if (client.ClientProductAccess.Any(cpa => cpa.ProductId == productId))
             {
                  return BadRequest("Produkt jest już przypisany do tego klienta.");
             }
             
-            // Przypisanie produktu (dodanie do kolekcji w relacji wiele-do-wielu)
-            client.Products.Add(product);
+            // Tworzenie i przypisanie nowego obiektu pośredniczącego
+            client.ClientProductAccess.Add(new ClientProductAccess { ProductId = productId, ClientId = clientId });
             
             await _db.SaveChangesAsync();
             return Ok(new { Message = $"Produkt {productId} został przypisany do klienta {clientId}." });
@@ -254,38 +254,49 @@ namespace ArWidgetApi.Controllers
 
     // ================= DTO =================
     
-    // Używane do tworzenia nowego klienta (tylko Nazwa)
+    // Używane do tworzenia nowego klienta
     public class ClientCreateDto
     {
-        public string? Name { get; set; } = string.Empty; // Ustawienie string.Empty dla CS8618
-        public string? SubscriptionStatus { get; set; } = "Trial";
+        public string Name { get; set; } = string.Empty; 
+        public string SubscriptionStatus { get; set; } = "Trial";
     }
     
-    // Zaktualizowane DTO dla widoku, aby pokazywać token i przypisane SKU
+    // Zaktualizowane DTO dla widoku Klientów
     public class ClientDto
     {
         public int Id { get; set; }
-        public string? Name { get; set; } = string.Empty;
-        public string? SubscriptionStatus { get; set; } = string.Empty;
-        public string? ClientToken { get; set; } = string.Empty; // Nowe pole
-        public List<string> ProductSkus { get; set; } = new List<string>(); // Nowe pole
+        public string Name { get; set; } = string.Empty;
+        public string SubscriptionStatus { get; set; } = string.Empty;
+        public string ClientToken { get; set; } = string.Empty; 
+        public List<string> ProductSkus { get; set; } = new List<string>(); // Wyświetlanie przypisanych produktów
     }
 
+    // DTO dla produktów
     public class ProductDto
     {
         public int Id { get; set; }
-        public string? ProductSku { get; set; } = string.Empty;
-        public string? Name { get; set; } = string.Empty;
-        public string? AltText { get; set; } = string.Empty;
-        public string? Description { get; set; } = string.Empty;
+        public string ProductSku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string AltText { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 
+    // DTO dla wpisów analitycznych
     public class AnalyticsDto
     {
         public int Id { get; set; }
         public int ClientId { get; set; }
         public int ProductId { get; set; }
-        public string? EventType { get; set; } = string.Empty;
+        public string EventType { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
+    }
+    
+    // 🚨 Wymaga istnienia tej klasy (ClientProductAccess), jeśli nie była podana wcześniej
+    public class ClientProductAccess
+    {
+        public int ClientId { get; set; }
+        public Client Client { get; set; } = default!;
+        public int ProductId { get; set; }
+        public Product Product { get; set; } = default!;
     }
 }
