@@ -22,7 +22,8 @@ namespace ArWidgetApi.Controllers
             _db = db;
 
             // Pobranie UID adminów z konfiguracji (np. appsettings.json lub Secret Manager)
-            _adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
+            //_adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
+       _adminUids = new List<string> { "mrlxV5NHoRMtRIj92qGfpLzLlpJ3" };
         }
 
         // ✅ Logika autoryzacji: Sprawdzenie, czy zalogowany użytkownik jest na liście adminów
