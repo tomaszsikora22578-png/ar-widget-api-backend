@@ -11,7 +11,7 @@ namespace ArWidgetApi.Controllers
     // 🚨 KRUCJALNA ZMIANA: Wymuszenie weryfikacji tokena Firebase ID 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
-    [Route("api/admin")]
+    [Route("/api/admin/clients")]
     public class AdminController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
