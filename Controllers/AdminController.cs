@@ -53,7 +53,6 @@ namespace ArWidgetApi.Controllers
                         Name = c.Name,
                         SubscriptionStatus = c.SubscriptionStatus,
                         ClientToken = c.ClientToken,
-                        // 🚨 POPRAWKA: Używamy product_id w LINQ do dostępu do SKU
                         ProductSkus = c.ClientProductAccess
                                         .Select(cpa => cpa.Product.ProductSku) 
                                         .ToList() 
@@ -178,14 +177,12 @@ namespace ArWidgetApi.Controllers
             }
 
             // Sprawdzenie, czy relacja już istnieje
-            // 🚨 POPRAWKA: Używamy product_id zamiast ProductId
             if (client.ClientProductAccess.Any(cpa => cpa.product_id == productId))
             {
                  return BadRequest("Produkt jest już przypisany do tego klienta.");
             }
             
             // Tworzenie i przypisanie nowego obiektu pośredniczącego
-            // 🚨 POPRAWKA: Używamy product_id i client_id
             client.ClientProductAccess.Add(new ClientProductAccess 
             { 
                 product_id = productId, 
@@ -194,8 +191,8 @@ namespace ArWidgetApi.Controllers
             
             await _db.SaveChangesAsync();
             return Ok(new { Message = $"Produkt {productId} został przypisany do klienta {clientId}." });
-        }
-        
+        } // ⬅️ Jeśli kompilator narzekał, to brakowało nawiasu w tym miejscu lub tuż obok
+
         // ================= PRODUCTS & ANALYTICS =================
 
         // GET /api/admin/products
@@ -207,3 +204,87 @@ namespace ArWidgetApi.Controllers
             try
             {
                 var products = await _db.Products
+                    .Select(p => new ProductDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        ProductSku = p.ProductSku,
+                        AltText = p.AltText,
+                        Description = p.Description
+                    })
+                    .ToListAsync();
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Database query failed (GetProducts): {ex.Message}");
+                return StatusCode(500, "Wystąpił błąd podczas pobierania danych produktów z bazy.");
+            }
+        }
+
+        // GET /api/admin/analytics
+        [HttpGet("analytics")]
+        public async Task<IActionResult> GetAnalytics()
+        {
+            if (!IsAdmin()) return Forbid();
+
+            try
+            {
+                var analytics = await _db.AnalyticsEntries
+                    .Select(a => new AnalyticsDto
+                    {
+                        Id = a.Id,
+                        ClientId = a.ClientId,
+                        ProductId = a.ProductId,
+                        EventType = a.EventType,
+                        Timestamp = a.Timestamp
+                    })
+                    .ToListAsync();
+
+                return Ok(analytics);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Database query failed (GetAnalytics): {ex.Message}");
+                return StatusCode(500, "Wystąpił błąd podczas pobierania danych analitycznych z bazy.");
+            }
+        }
+    } // ⬅️ Zamknięcie klasy AdminController
+
+    // ================= DTO =================
+    
+    // ... DTO definitions
+    public class ClientCreateDto
+    {
+        public string Name { get; set; } = string.Empty; 
+        public string SubscriptionStatus { get; set; } = "Trial";
+    }
+    
+    public class ClientDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string SubscriptionStatus { get; set; } = string.Empty;
+        public string ClientToken { get; set; } = string.Empty; 
+        public List<string> ProductSkus { get; set; } = new List<string>();
+    }
+
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string ProductSku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string AltText { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class AnalyticsDto
+    {
+        public int Id { get; set; }
+        public int ClientId { get; set; }
+        public int ProductId { get; set; }
+        public string EventType { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+    }
+} // ⬅️ Zamknięcie przestrzeni nazw ArWidgetApi.Controllers
