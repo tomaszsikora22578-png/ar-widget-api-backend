@@ -2,14 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-// 🚨 Pamiętaj o dodaniu modeli Client, Product, AnalyticsEntry, jeśli nie są widoczne
-using ArWidgetApi.Models; 
+using ArWidgetApi.Models; // Pamiętaj o dodaniu Twoich modeli
 using ArWidgetApi;
 using System.Security.Claims;
 
 namespace ArWidgetApi.Controllers
 {
-    [Route("api/admin")] 
+    [Route("api/admin")] 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     public class AdminController : ControllerBase
@@ -17,20 +16,19 @@ namespace ArWidgetApi.Controllers
         private readonly ApplicationDbContext _db;
         private readonly List<string> _adminUids;
 
-        // 🚨 Wymaga dodania serwisu do generowania tokenów, np. ITokenGeneratorService
-        // public AdminController(ApplicationDbContext db, IConfiguration configuration, ITokenGeneratorService tokenService)
-
         public AdminController(ApplicationDbContext db, IConfiguration configuration)
         {
             _db = db;
-            // Tutaj musi być zaimplementowana poprawna logika ładowania UID (wcześniej naprawiona)
+
+            // Logika ładowania UID adminów (poprawiona wcześniej)
             _adminUids = configuration.GetSection("AdminUsers:FirebaseUids").Get<List<string>>() ?? new List<string>();
         }
 
-        // ✅ Logika autoryzacji
+        // Logika autoryzacji: Sprawdzenie, czy zalogowany użytkownik jest na liście adminów
         private bool IsAdmin()
         {
             var firebaseUidClaim = User.FindFirst("user_id") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+
             if (firebaseUidClaim != null)
             {
                 var uid = firebaseUidClaim.Value;
@@ -49,14 +47,17 @@ namespace ArWidgetApi.Controllers
 
             try
             {
+                // Wczytanie Klientów z ich produktami (używamy Products zamiast ClientProducts)
                 var clients = await _db.Clients
+                    .Include(c => c.Products) // 🚨 Poprawka: Zakładamy, że Client ma kolekcję 'Products'
                     .Select(c => new ClientDto
                     {
                         Id = c.Id,
                         Name = c.Name,
                         SubscriptionStatus = c.SubscriptionStatus,
-                        // 🚨 Dodajemy token, jeśli jest przechowywany w modelu Client
-                        ClientToken = c.ClientToken // Zakładamy, że Client ma pole ClientToken
+                        ClientToken = c.ClientToken ?? string.Empty,
+                        // Nowe pole: lista przypisanych SKU produktów
+                        ProductSkus = c.Products.Select(p => p.ProductSku).ToList() 
                     })
                     .ToListAsync();
 
@@ -81,27 +82,27 @@ namespace ArWidgetApi.Controllers
 
             try
             {
-                // 1. Stworzenie tokena (np. Guid, JWT, lub inny)
-                string newToken = Guid.NewGuid().ToString("N"); // Generowanie prostego, unikalnego tokena
+                string newToken = Guid.NewGuid().ToString("N");
 
-                var newClient = new Client // Zakładamy, że masz model Client
+                var newClient = new Client 
                 {
                     Name = clientDto.Name,
                     SubscriptionStatus = clientDto.SubscriptionStatus ?? "Trial",
-                    ClientToken = newToken, // Przypisanie nowego tokena
-                    // Inne pola modelu Client
+                    ClientToken = newToken,
+                    // Inicjalizacja kolekcji (dla NRT: = new List<Product>() { })
+                    Products = new List<Product>() 
                 };
 
                 _db.Clients.Add(newClient);
                 await _db.SaveChangesAsync();
                 
-                // Zwracamy stworzony obiekt z tokenem
                 return CreatedAtAction(nameof(GetClients), new { id = newClient.Id }, new ClientDto 
                 {
                     Id = newClient.Id,
                     Name = newClient.Name,
                     SubscriptionStatus = newClient.SubscriptionStatus,
-                    ClientToken = newClient.ClientToken
+                    ClientToken = newClient.ClientToken,
+                    ProductSkus = new List<string>()
                 });
             }
             catch (Exception ex)
@@ -127,7 +128,7 @@ namespace ArWidgetApi.Controllers
             {
                 _db.Clients.Remove(client);
                 await _db.SaveChangesAsync();
-                return NoContent(); // 204 No Content
+                return NoContent();
             }
             catch (Exception ex)
             {
@@ -147,7 +148,6 @@ namespace ArWidgetApi.Controllers
 
             try
             {
-                // Generowanie nowego tokena (np. Guid)
                 string newToken = Guid.NewGuid().ToString("N");
                 client.ClientToken = newToken;
                 
@@ -169,9 +169,9 @@ namespace ArWidgetApi.Controllers
         {
             if (!IsAdmin()) return Forbid();
             
-            // Zakładamy istnienie tabeli pośredniczącej ClientProduct
+            // 🚨 Poprawka: Ładowanie kolekcji Products do klienta
             var client = await _db.Clients
-                                  .Include(c => c.ClientProducts) // Pamiętaj o Include w DbContext!
+                                  .Include(c => c.Products) 
                                   .FirstOrDefaultAsync(c => c.Id == clientId);
             var product = await _db.Products.FindAsync(productId);
 
@@ -179,10 +179,15 @@ namespace ArWidgetApi.Controllers
             {
                 return NotFound("Klient lub Produkt nie został znaleziony.");
             }
+
+            // Sprawdzenie, czy produkt już jest przypisany
+            if (client.Products.Any(p => p.Id == productId))
+            {
+                 return BadRequest("Produkt jest już przypisany do tego klienta.");
+            }
             
-            // 🚨 Dodanie logiki wiążącej, zakładającej istnienie tabeli pośredniczącej
-            // Na przykład: client.ClientProducts.Add(new ClientProduct { ProductId = productId });
-            // ... (implementacja)
+            // Przypisanie produktu (dodanie do kolekcji w relacji wiele-do-wielu)
+            client.Products.Add(product);
             
             await _db.SaveChangesAsync();
             return Ok(new { Message = $"Produkt {productId} został przypisany do klienta {clientId}." });
@@ -190,47 +195,89 @@ namespace ArWidgetApi.Controllers
         
         // ================= PRODUCTS & ANALYTICS =================
 
-        // GET /api/admin/products - (Pozostaje bez zmian)
+        // GET /api/admin/products
         [HttpGet("products")]
         public async Task<IActionResult> GetProducts()
         {
-            // ... (kod bez zmian)
+            if (!IsAdmin()) return Forbid();
+
+            try
+            {
+                var products = await _db.Products
+                    .Select(p => new ProductDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        ProductSku = p.ProductSku,
+                        AltText = p.AltText,
+                        Description = p.Description
+                    })
+                    .ToListAsync();
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Database query failed (GetProducts): {ex.Message}");
+                return StatusCode(500, "Wystąpił błąd podczas pobierania danych produktów z bazy.");
+            }
         }
 
-        // GET /api/admin/analytics - (Pozostaje bez zmian)
+        // GET /api/admin/analytics
         [HttpGet("analytics")]
         public async Task<IActionResult> GetAnalytics()
         {
-            // ... (kod bez zmian)
+            if (!IsAdmin()) return Forbid();
+
+            try
+            {
+                var analytics = await _db.AnalyticsEntries
+                    .Select(a => new AnalyticsDto
+                    {
+                        Id = a.Id,
+                        ClientId = a.ClientId,
+                        ProductId = a.ProductId,
+                        EventType = a.EventType,
+                        Timestamp = a.Timestamp
+                    })
+                    .ToListAsync();
+
+                return Ok(analytics);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Database query failed (GetAnalytics): {ex.Message}");
+                return StatusCode(500, "Wystąpił błąd podczas pobierania danych analitycznych z bazy.");
+            }
         }
     }
 
-    // ================= NOWE I ZMODYFIKOWANE DTO =================
+    // ================= DTO =================
     
     // Używane do tworzenia nowego klienta (tylko Nazwa)
     public class ClientCreateDto
     {
-        public string Name { get; set; }
-        public string SubscriptionStatus { get; set; }
+        public string? Name { get; set; } = string.Empty; // Ustawienie string.Empty dla CS8618
+        public string? SubscriptionStatus { get; set; } = "Trial";
     }
     
-    // Zaktualizowane DTO dla widoku, aby pokazywać token
+    // Zaktualizowane DTO dla widoku, aby pokazywać token i przypisane SKU
     public class ClientDto
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string SubscriptionStatus { get; set; }
-        public string ClientToken { get; set; } // Nowe pole
+        public string? Name { get; set; } = string.Empty;
+        public string? SubscriptionStatus { get; set; } = string.Empty;
+        public string? ClientToken { get; set; } = string.Empty; // Nowe pole
+        public List<string> ProductSkus { get; set; } = new List<string>(); // Nowe pole
     }
 
-    // Pozostałe DTO (ProductDto, AnalyticsDto) pozostają bez zmian
     public class ProductDto
     {
         public int Id { get; set; }
-        public string ProductSku { get; set; }
-        public string Name { get; set; }
-        public string AltText { get; set; }
-        public string Description { get; set; }
+        public string? ProductSku { get; set; } = string.Empty;
+        public string? Name { get; set; } = string.Empty;
+        public string? AltText { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
     }
 
     public class AnalyticsDto
@@ -238,7 +285,7 @@ namespace ArWidgetApi.Controllers
         public int Id { get; set; }
         public int ClientId { get; set; }
         public int ProductId { get; set; }
-        public string EventType { get; set; }
+        public string? EventType { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
     }
 }
